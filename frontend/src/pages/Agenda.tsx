@@ -148,7 +148,8 @@ export function Agenda() {
   // Obtener citas de una hora específica
   const getCitasHora = (fecha: Date, hora: string) => {
     const fechaStr = format(fecha, "yyyy-MM-dd");
-    return citas.filter((c) => c.fecha === fechaStr && c.hora === hora);
+    // La BD devuelve hora como "HH:MM:SS", pero el slot es "HH:MM"
+    return citas.filter((c) => c.fecha === fechaStr && c.hora.substring(0, 5) === hora);
   };
 
   // Abrir modal para nueva cita
@@ -217,7 +218,7 @@ export function Agenda() {
       }
 
       setModalAbierto(false);
-      cargarCitas();
+      await cargarCitas();
     } catch (error) {
       console.error("Error guardando cita:", error);
       alert(error instanceof Error ? error.message : "Error al guardar la cita");
@@ -235,7 +236,7 @@ export function Agenda() {
       setGuardando(true);
       await eliminarCita(citaEditando.id);
       setModalAbierto(false);
-      cargarCitas();
+      await cargarCitas();
     } catch (error) {
       console.error("Error eliminando cita:", error);
       alert("Error al eliminar la cita");
@@ -248,7 +249,7 @@ export function Agenda() {
   const cambiarEstadoCita = async (cita: Reserva, nuevoEstado: EstadoReserva) => {
     try {
       await actualizarCita(cita.id, { estado: nuevoEstado });
-      cargarCitas();
+      await cargarCitas();
     } catch (error) {
       console.error("Error cambiando estado:", error);
     }

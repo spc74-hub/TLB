@@ -24,7 +24,8 @@ router = APIRouter(
 )
 
 
-@router.get("/", response_model=ListaProductos)
+@router.get("", response_model=ListaProductos)
+@router.get("/", response_model=ListaProductos, include_in_schema=False)
 async def listar_productos(
     categoria: Optional[CategoriaProducto] = None,
     solo_activos: bool = True,

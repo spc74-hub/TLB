@@ -12,13 +12,14 @@ import {
   Tienda,
   ProductoDetalle,
   Carrito,
+  Checkout,
   PagoExitoso,
   Login,
   Registro,
   Perfil,
   Agenda,
 } from "@/pages";
-import { Dashboard, Empleados, Servicios as AdminServicios, Productos as AdminProductos } from "@/pages/admin";
+import { Dashboard, Empleados, Servicios as AdminServicios, Productos as AdminProductos, Pedidos as AdminPedidos } from "@/pages/admin";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function App() {
@@ -33,6 +34,7 @@ function App() {
           <Route path="tienda" element={<Tienda />} />
           <Route path="tienda/:id" element={<ProductoDetalle />} />
           <Route path="carrito" element={<Carrito />} />
+          <Route path="checkout" element={<Checkout />} />
           <Route path="pago-exitoso" element={<PagoExitoso />} />
           <Route path="reservar" element={<Reservar />} />
           <Route path="nosotros" element={<Nosotros />} />
@@ -57,6 +59,7 @@ function App() {
           <Route path="empleados" element={<Empleados />} />
           <Route path="servicios" element={<AdminServicios />} />
           <Route path="productos" element={<AdminProductos />} />
+          <Route path="pedidos" element={<AdminPedidos />} />
         </Route>
       </Routes>
     </CartProvider>

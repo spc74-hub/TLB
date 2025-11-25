@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import get_settings
 from app.core.database import init_supabase
-from app.routers import servicios, reservas, productos, pagos
+from app.routers import servicios, reservas, productos, pagos, pedidos
 
 
 @asynccontextmanager
@@ -29,6 +29,7 @@ settings = get_settings()
 
 app = FastAPI(
     title=settings.app_name,
+    redirect_slashes=False,  # Evitar 307 redirects por trailing slashes
     description="""
     ## The Lobby Beauty API 🌿
 
@@ -70,6 +71,7 @@ app.include_router(servicios.router, prefix="/api/v1")
 app.include_router(reservas.router, prefix="/api/v1")
 app.include_router(productos.router, prefix="/api/v1")
 app.include_router(pagos.router, prefix="/api/v1")
+app.include_router(pedidos.router, prefix="/api/v1")
 
 
 @app.get("/")

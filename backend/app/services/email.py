@@ -277,3 +277,426 @@ async def enviar_cancelacion_reserva(
     except Exception as e:
         print(f"❌ Error enviando cancelación: {e}")
         return False
+
+
+# ============================================
+# EMAILS DE PEDIDOS
+# ============================================
+
+async def enviar_confirmacion_pedido(
+    email_cliente: str,
+    nombre_cliente: str,
+    pedido_id: int,
+    items: list,
+    total: float,
+    direccion: Optional[str] = None,
+) -> bool:
+    """
+    Envía email de confirmación de pedido al cliente.
+    """
+    if not settings.resend_api_key:
+        print("⚠️ RESEND_API_KEY no configurada, email no enviado")
+        return False
+
+    # Generar HTML de items
+    items_html = ""
+    for item in items:
+        nombre = item.get("nombre", "Producto")
+        cantidad = item.get("cantidad", 1)
+        precio = item.get("precio", 0)
+        items_html += f"""
+        <tr>
+            <td style="padding: 12px 0; border-bottom: 1px solid #eee;">{nombre}</td>
+            <td style="padding: 12px 0; border-bottom: 1px solid #eee; text-align: center;">{cantidad}</td>
+            <td style="padding: 12px 0; border-bottom: 1px solid #eee; text-align: right;">{precio:.2f}€</td>
+        </tr>
+        """
+
+    direccion_html = ""
+    if direccion:
+        direccion_html = f"""
+        <div style="background: #f8f7f5; border-radius: 8px; padding: 15px; margin-top: 20px;">
+            <strong style="color: #636e72;">Dirección de envío:</strong>
+            <p style="margin: 10px 0 0; color: #2d3436;">{direccion}</p>
+        </div>
+        """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #faf9f7; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+            .header {{ background: linear-gradient(135deg, #6b8f71 0%, #5a7d60 100%); padding: 30px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 28px; font-weight: 600; }}
+            .header p {{ color: rgba(255,255,255,0.9); margin: 10px 0 0; }}
+            .content {{ padding: 30px; }}
+            .order-number {{ background: #6b8f71; color: white; display: inline-block; padding: 8px 16px; border-radius: 20px; font-size: 14px; margin-bottom: 20px; }}
+            table {{ width: 100%; border-collapse: collapse; margin: 20px 0; }}
+            th {{ text-align: left; padding: 12px 0; border-bottom: 2px solid #6b8f71; color: #636e72; font-size: 12px; text-transform: uppercase; }}
+            .total-row {{ font-size: 18px; font-weight: bold; color: #6b8f71; }}
+            .footer {{ background: #f8f7f5; padding: 20px; text-align: center; font-size: 12px; color: #636e72; }}
+            .icon {{ font-size: 48px; margin-bottom: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="icon">🛍️</div>
+                <h1>The Lobby Beauty</h1>
+                <p>¡Gracias por tu pedido!</p>
+            </div>
+            <div class="content">
+                <p>Hola {nombre_cliente},</p>
+                <p>Hemos recibido tu pedido y lo estamos preparando.</p>
+
+                <span class="order-number">Pedido #{pedido_id}</span>
+
+                <table>
+                    <thead>
+                        <tr>
+                            <th>Producto</th>
+                            <th style="text-align: center;">Cant.</th>
+                            <th style="text-align: right;">Precio</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {items_html}
+                        <tr class="total-row">
+                            <td colspan="2" style="padding-top: 15px;">Total</td>
+                            <td style="padding-top: 15px; text-align: right;">{total:.2f}€</td>
+                        </tr>
+                    </tbody>
+                </table>
+
+                {direccion_html}
+
+                <p style="color: #636e72; font-size: 14px; margin-top: 20px;">
+                    Te notificaremos cuando tu pedido esté en camino.
+                    Si tienes alguna pregunta, no dudes en contactarnos.
+                </p>
+            </div>
+            <div class="footer">
+                <p>The Lobby Beauty</p>
+                <p>Este email fue enviado porque realizaste un pedido en nuestra tienda.</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    try:
+        params = {
+            "from": settings.email_from,
+            "to": [email_cliente],
+            "subject": f"🛍️ Pedido #{pedido_id} confirmado - The Lobby Beauty",
+            "html": html_content,
+        }
+
+        resend.Emails.send(params)
+        print(f"✅ Email de pedido enviado a {email_cliente}")
+        return True
+    except Exception as e:
+        print(f"❌ Error enviando email de pedido: {e}")
+        return False
+
+
+async def enviar_pedido_enviado(
+    email_cliente: str,
+    nombre_cliente: str,
+    pedido_id: int,
+    numero_seguimiento: Optional[str] = None,
+) -> bool:
+    """
+    Envía email cuando el pedido ha sido enviado.
+    """
+    if not settings.resend_api_key:
+        return False
+
+    seguimiento_html = ""
+    if numero_seguimiento:
+        seguimiento_html = f"""
+        <div style="background: #e8f5e9; border-radius: 8px; padding: 20px; margin: 20px 0; text-align: center;">
+            <p style="margin: 0; color: #2e7d32; font-size: 14px;">Número de seguimiento:</p>
+            <p style="margin: 10px 0 0; font-size: 20px; font-weight: bold; color: #1b5e20;">{numero_seguimiento}</p>
+        </div>
+        """
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #faf9f7; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }}
+            .header {{ background: linear-gradient(135deg, #4caf50 0%, #388e3c 100%); padding: 30px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 28px; }}
+            .content {{ padding: 30px; }}
+            .footer {{ background: #f8f7f5; padding: 20px; text-align: center; font-size: 12px; color: #636e72; }}
+            .icon {{ font-size: 48px; margin-bottom: 10px; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="icon">📦</div>
+                <h1>¡Tu pedido está en camino!</h1>
+            </div>
+            <div class="content">
+                <p>Hola {nombre_cliente},</p>
+                <p>Tu pedido <strong>#{pedido_id}</strong> ha sido enviado y pronto llegará a tu dirección.</p>
+
+                {seguimiento_html}
+
+                <p style="color: #636e72; font-size: 14px;">
+                    El tiempo estimado de entrega es de 2-5 días laborables.
+                </p>
+            </div>
+            <div class="footer">
+                <p>The Lobby Beauty</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    try:
+        params = {
+            "from": settings.email_from,
+            "to": [email_cliente],
+            "subject": f"📦 Tu pedido #{pedido_id} está en camino - The Lobby Beauty",
+            "html": html_content,
+        }
+
+        resend.Emails.send(params)
+        return True
+    except Exception as e:
+        print(f"❌ Error enviando email de envío: {e}")
+        return False
+
+
+# ============================================
+# EMAILS ADMIN
+# ============================================
+
+async def notificar_admin_nuevo_pedido(
+    pedido_id: int,
+    cliente_nombre: str,
+    total: float,
+    admin_email: str = "sergio.porcar@gmail.com",
+) -> bool:
+    """
+    Notifica al admin cuando hay un nuevo pedido.
+    """
+    if not settings.resend_api_key:
+        return False
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #faf9f7; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; }}
+            .header {{ background: #6b8f71; padding: 20px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 20px; }}
+            .content {{ padding: 30px; }}
+            .highlight {{ background: #e8f5e9; border-radius: 8px; padding: 20px; margin: 20px 0; }}
+            .footer {{ padding: 20px; text-align: center; font-size: 12px; color: #636e72; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>🔔 Nuevo Pedido</h1>
+            </div>
+            <div class="content">
+                <div class="highlight">
+                    <p style="margin: 0;"><strong>Pedido:</strong> #{pedido_id}</p>
+                    <p style="margin: 10px 0 0;"><strong>Cliente:</strong> {cliente_nombre}</p>
+                    <p style="margin: 10px 0 0;"><strong>Total:</strong> {total:.2f}€</p>
+                </div>
+                <p>Accede al panel de administración para ver los detalles y procesar el pedido.</p>
+            </div>
+            <div class="footer">
+                <p>The Lobby Beauty - Panel Admin</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    try:
+        params = {
+            "from": settings.email_from,
+            "to": [admin_email],
+            "subject": f"🔔 Nuevo pedido #{pedido_id} - {total:.2f}€",
+            "html": html_content,
+        }
+
+        resend.Emails.send(params)
+        return True
+    except Exception as e:
+        print(f"❌ Error notificando admin: {e}")
+        return False
+
+
+async def notificar_admin_nueva_cita(
+    cliente_nombre: str,
+    servicio_nombre: str,
+    fecha: date,
+    hora: time,
+    admin_email: str = "sergio.porcar@gmail.com",
+) -> bool:
+    """
+    Notifica al admin cuando hay una nueva cita.
+    """
+    if not settings.resend_api_key:
+        return False
+
+    fecha_formateada = _format_fecha(fecha)
+    hora_formateada = _format_hora(hora)
+
+    html_content = f"""
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body {{ font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #faf9f7; margin: 0; padding: 20px; }}
+            .container {{ max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; }}
+            .header {{ background: #6b8f71; padding: 20px; text-align: center; }}
+            .header h1 {{ color: white; margin: 0; font-size: 20px; }}
+            .content {{ padding: 30px; }}
+            .highlight {{ background: #fff3e0; border-radius: 8px; padding: 20px; margin: 20px 0; }}
+            .footer {{ padding: 20px; text-align: center; font-size: 12px; color: #636e72; }}
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <h1>📅 Nueva Cita</h1>
+            </div>
+            <div class="content">
+                <div class="highlight">
+                    <p style="margin: 0;"><strong>Cliente:</strong> {cliente_nombre}</p>
+                    <p style="margin: 10px 0 0;"><strong>Servicio:</strong> {servicio_nombre}</p>
+                    <p style="margin: 10px 0 0;"><strong>Fecha:</strong> {fecha_formateada}</p>
+                    <p style="margin: 10px 0 0;"><strong>Hora:</strong> {hora_formateada}</p>
+                </div>
+                <p>Accede al panel de administración para ver la agenda.</p>
+            </div>
+            <div class="footer">
+                <p>The Lobby Beauty - Panel Admin</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    try:
+        params = {
+            "from": settings.email_from,
+            "to": [admin_email],
+            "subject": f"📅 Nueva cita: {servicio_nombre} - {fecha_formateada}",
+            "html": html_content,
+        }
+
+        resend.Emails.send(params)
+        return True
+    except Exception as e:
+        print(f"❌ Error notificando admin: {e}")
+        return False
+
+
+# ============================================
+# TEST EMAIL
+# ============================================
+
+async def enviar_email_test(email_destino: str) -> dict:
+    """
+    Envía un email de prueba para verificar la configuración de Resend.
+    Retorna un dict con el resultado y detalles del diagnóstico.
+    """
+    resultado = {
+        "configurado": False,
+        "enviado": False,
+        "error": None,
+        "detalles": {}
+    }
+
+    # Verificar configuración
+    if not settings.resend_api_key:
+        resultado["error"] = "RESEND_API_KEY no está configurada en el archivo .env"
+        resultado["detalles"]["api_key_presente"] = False
+        return resultado
+
+    resultado["configurado"] = True
+    resultado["detalles"]["api_key_presente"] = True
+    resultado["detalles"]["email_from"] = settings.email_from
+
+    html_content = """
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <meta charset="utf-8">
+        <style>
+            body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: #faf9f7; margin: 0; padding: 20px; }
+            .container { max-width: 600px; margin: 0 auto; background: white; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 6px rgba(0,0,0,0.1); }
+            .header { background: linear-gradient(135deg, #6b8f71 0%, #5a7d60 100%); padding: 30px; text-align: center; }
+            .header h1 { color: white; margin: 0; font-size: 28px; }
+            .content { padding: 30px; text-align: center; }
+            .success { background: #e8f5e9; border-radius: 8px; padding: 20px; margin: 20px 0; }
+            .success p { color: #2e7d32; margin: 0; font-size: 18px; }
+            .footer { background: #f8f7f5; padding: 20px; text-align: center; font-size: 12px; color: #636e72; }
+            .icon { font-size: 64px; margin-bottom: 10px; }
+        </style>
+    </head>
+    <body>
+        <div class="container">
+            <div class="header">
+                <div class="icon">✅</div>
+                <h1>The Lobby Beauty</h1>
+            </div>
+            <div class="content">
+                <div class="success">
+                    <p>¡La configuración de emails funciona correctamente!</p>
+                </div>
+                <p style="color: #636e72;">
+                    Este es un email de prueba enviado desde el sistema de notificaciones
+                    de The Lobby Beauty usando Resend.
+                </p>
+                <p style="color: #636e72; font-size: 12px; margin-top: 20px;">
+                    Si recibes este email, todo está configurado correctamente.
+                </p>
+            </div>
+            <div class="footer">
+                <p>The Lobby Beauty - Test de configuración</p>
+            </div>
+        </div>
+    </body>
+    </html>
+    """
+
+    try:
+        params = {
+            "from": settings.email_from,
+            "to": [email_destino],
+            "subject": "✅ Test de email - The Lobby Beauty",
+            "html": html_content,
+        }
+
+        response = resend.Emails.send(params)
+        resultado["enviado"] = True
+        resultado["detalles"]["resend_id"] = response.get("id") if isinstance(response, dict) else str(response)
+        print(f"✅ Email de test enviado a {email_destino}")
+        return resultado
+
+    except Exception as e:
+        resultado["error"] = str(e)
+        print(f"❌ Error enviando email de test: {e}")
+        return resultado

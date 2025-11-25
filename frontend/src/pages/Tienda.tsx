@@ -46,23 +46,36 @@ export function Tienda() {
 
   // Cargar datos de Supabase
   useEffect(() => {
+    let cancelled = false;
+
     async function cargarDatos() {
       try {
         setLoading(true);
+        setError(null);
+
         const [productosData, categoriasData] = await Promise.all([
           getProductos(),
-          getCategoriasProductos(),
+          getCategoriasProductos()
         ]);
-        setProductos(productosData);
-        setCategorias(categoriasData);
+
+        if (!cancelled) {
+          setProductos(productosData);
+          setCategorias(categoriasData);
+        }
       } catch (err) {
-        setError("Error al cargar los productos");
-        console.error(err);
+        console.error("Error cargando productos:", err);
+        if (!cancelled) {
+          setError("Error al cargar los productos. Pulsa Reintentar.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
     cargarDatos();
+
+    return () => { cancelled = true; };
   }, []);
 
   // Filtrar productos

@@ -9,13 +9,16 @@ from app.core.config import get_settings
 
 def get_supabase_client() -> Client:
     """
-    Crea y retorna un cliente de Supabase.
+    Crea y retorna un cliente de Supabase con service_role key.
+    Esto permite al backend bypassear RLS para operaciones como crear pedidos.
 
     Returns:
-        Client: Cliente de Supabase configurado.
+        Client: Cliente de Supabase configurado con service_role.
     """
     settings = get_settings()
-    return create_client(settings.supabase_url, settings.supabase_key)
+    # Usar service_role key si está disponible, sino usar anon key
+    key = settings.supabase_service_role_key or settings.supabase_key
+    return create_client(settings.supabase_url, key)
 
 
 # Cliente singleton para reutilizar en toda la aplicación

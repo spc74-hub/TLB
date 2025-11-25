@@ -46,7 +46,6 @@ const menuItems = [
     title: "Pedidos",
     href: "/admin/pedidos",
     icon: ShoppingBag,
-    disabled: true,
   },
   {
     title: "Configuración",

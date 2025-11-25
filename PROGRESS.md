@@ -47,26 +47,26 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ---
 
-## Fase 2: Funcionalidades de Ecommerce ⏳ EN PROGRESO
+## Fase 2: Funcionalidades de Ecommerce ✅ COMPLETADO
 
 ### 2.1 Pasarela de Pago ✅ COMPLETADO
 - [x] Integrar Stripe (checkout session)
 - [x] Página de pago exitoso
 - [x] Redirección a Stripe Checkout
-- [ ] Configurar webhooks para confirmar pagos
-- [ ] Crear pedido en BD cuando se paga
+- [x] Webhook de Stripe para confirmar pagos
+- [x] Crear pedido en BD cuando se paga
 
-### 2.2 Proceso de Checkout
-- [ ] Formulario de datos de envío (antes del pago)
+### 2.2 Proceso de Checkout ✅ COMPLETADO
+- [x] Formulario de datos de envío (antes del pago)
 - [x] Resumen de pedido (en carrito)
 - [x] Confirmación de pago (página éxito)
 - [x] Página de éxito/error
 
-### 2.3 Gestión de Pedidos
-- [ ] Crear pedido en base de datos
-- [ ] Estados de pedido (pendiente, pagado, enviado, entregado)
-- [ ] Historial de pedidos del usuario
-- [ ] Lista de pedidos en admin `/admin/pedidos`
+### 2.3 Gestión de Pedidos ✅ COMPLETADO
+- [x] Crear pedido en base de datos
+- [x] Estados de pedido (pendiente, pagado, enviado, entregado)
+- [x] Historial de pedidos del usuario (en perfil)
+- [x] Lista de pedidos en admin `/admin/pedidos`
 
 ### 2.4 Notificaciones (Resend - AL FINAL)
 - [x] Sistema de emails implementado (código listo)
@@ -275,6 +275,20 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Envío en background (no bloquea API)
 - [ ] Pendiente: configurar API key de Resend
 
+### Sistema de Ecommerce Completo (2025-11-25)
+- [x] Página de Checkout con formulario de datos de envío
+- [x] Datos de envío se envían a Stripe metadata
+- [x] Webhook de Stripe `/api/v1/pagos/webhook`
+- [x] Creación automática de pedido en BD al confirmar pago
+- [x] Items del pedido guardados en pedido_items
+- [x] Historial de pedidos en página de perfil (expandible)
+- [x] Panel admin `/admin/pedidos` con:
+  - Lista de pedidos con filtros
+  - Cambio de estado (pagado, preparando, enviado, entregado)
+  - Estadísticas (total, pendientes, enviados, ventas)
+  - Modal de detalle con productos y dirección
+- [x] SQL para políticas RLS de pedidos (database/add_pedidos_rls.sql)
+
 ---
 
 ## Notas y Decisiones
@@ -300,40 +314,34 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - `/admin/servicios` - CRUD servicios ✅
 - `/admin/productos` - CRUD productos ✅
 - `/admin/empleados` - CRUD empleados ✅
-- `/admin/pedidos` - (próximamente)
+- `/admin/pedidos` - Gestión de pedidos ✅
 - `/admin/configuracion` - (próximamente)
 
 ---
 
 ## Plan de Trabajo Actual
 
-### PASO 1: Completar Ecommerce (AHORA)
-1. [ ] Formulario de datos de envío antes del checkout
-2. [ ] Webhook de Stripe para confirmar pagos
-3. [ ] Crear pedido en BD cuando pago confirmado
-4. [ ] Historial de pedidos del usuario
-5. [ ] Lista de pedidos en `/admin/pedidos`
+### PASO 1: Completar Ecommerce ✅ COMPLETADO
+1. [x] Formulario de datos de envío antes del checkout
+2. [x] Webhook de Stripe para confirmar pagos
+3. [x] Crear pedido en BD cuando pago confirmado
+4. [x] Historial de pedidos del usuario
+5. [x] Lista de pedidos en `/admin/pedidos`
 
-### PASO 2: Mejoras Admin Panel
+### PASO 2: Mejoras Admin Panel (AHORA)
 6. [ ] Gráfico de ingresos en dashboard
 7. [ ] Pedidos recientes en dashboard
 8. [ ] Subida de imágenes (productos/servicios)
 
 ### PASO 3: UX/Cuenta de Usuario
 9. [ ] Historial de citas del usuario
-10. [ ] Historial de pedidos del usuario
-11. [ ] Recuperación de contraseña (UI)
+10. [ ] Recuperación de contraseña (UI)
 
-### PASO 4: Emails (Resend)
-12. [ ] Crear cuenta Resend
-13. [ ] Configurar API key
-14. [ ] Activar emails de confirmación
-
-### PASO 5: Despliegue (AL FINAL)
-15. [ ] Elegir opción de hosting
-16. [ ] Configurar variables de entorno
-17. [ ] Deploy frontend y backend
-18. [ ] Configurar dominio
+### PASO 4: Despliegue (AL FINAL)
+11. [ ] Elegir opción de hosting
+12. [ ] Configurar variables de entorno
+13. [ ] Deploy frontend y backend
+14. [ ] Configurar dominio
 
 ---
 
@@ -367,3 +375,10 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [ ] Google Calendar sync
 - [ ] WhatsApp Business API
 - [ ] Google Analytics / Plausible
+
+### Emails (Resend)
+- [ ] Crear cuenta Resend
+- [ ] Configurar API key
+- [ ] Activar emails de confirmación de citas
+- [ ] Email de confirmación de pedido
+- [ ] Recordatorio 24h antes de cita

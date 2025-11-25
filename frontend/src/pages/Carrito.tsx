@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Link } from "react-router-dom";
 import {
   ShoppingCart,
@@ -11,14 +10,11 @@ import {
   Truck,
   ShieldCheck,
   CreditCard,
-  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useCart } from "@/context/CartContext";
-
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1";
 
 const ENVIO_GRATIS_MINIMO = 50;
 const COSTE_ENVIO = 4.95;
@@ -33,73 +29,10 @@ export function Carrito() {
     vaciarCarrito,
   } = useCart();
 
-  const [procesandoPago, setProcesandoPago] = useState(false);
-  const [errorPago, setErrorPago] = useState<string | null>(null);
-
   const envioGratis = total >= ENVIO_GRATIS_MINIMO;
   const costeEnvio = envioGratis ? 0 : COSTE_ENVIO;
   const totalConEnvio = total + costeEnvio;
   const faltaParaEnvioGratis = ENVIO_GRATIS_MINIMO - total;
-
-  const handleCheckout = async () => {
-    setProcesandoPago(true);
-    setErrorPago(null);
-
-    try {
-      // Preparar items para Stripe
-      const itemsParaStripe: Array<{
-        producto_id: number;
-        nombre: string;
-        precio: number;
-        cantidad: number;
-        imagen_url: string | null;
-      }> = items.map((item) => ({
-        producto_id: item.producto.id,
-        nombre: item.producto.nombre,
-        precio: item.producto.precio_oferta ?? item.producto.precio,
-        cantidad: item.cantidad,
-        imagen_url: item.producto.imagen_url,
-      }));
-
-      // Añadir coste de envío si aplica
-      if (!envioGratis) {
-        itemsParaStripe.push({
-          producto_id: 0,
-          nombre: "Gastos de envío",
-          precio: COSTE_ENVIO,
-          cantidad: 1,
-          imagen_url: null,
-        });
-      }
-
-      // Crear sesión de checkout
-      const response = await fetch(`${API_URL}/pagos/create-checkout-session`, {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify({
-          items: itemsParaStripe,
-          success_url: `${window.location.origin}/pago-exitoso`,
-          cancel_url: `${window.location.origin}/carrito`,
-        }),
-      });
-
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.detail || "Error al crear la sesión de pago");
-      }
-
-      const { url } = await response.json();
-
-      // Redirigir a Stripe Checkout
-      window.location.href = url;
-    } catch (error) {
-      console.error("Error en checkout:", error);
-      setErrorPago(error instanceof Error ? error.message : "Error al procesar el pago");
-      setProcesandoPago(false);
-    }
-  };
 
   if (items.length === 0) {
     return (
@@ -364,30 +297,16 @@ export function Carrito() {
                 </div>
 
                 <Button
+                  asChild
                   size="lg"
                   className="w-full bg-salvia-500 hover:bg-salvia-600 gap-2 mb-4"
-                  onClick={handleCheckout}
-                  disabled={procesandoPago}
                 >
-                  {procesandoPago ? (
-                    <>
-                      <Loader2 className="h-5 w-5 animate-spin" />
-                      Procesando...
-                    </>
-                  ) : (
-                    <>
-                      <CreditCard className="h-5 w-5" />
-                      Finalizar compra
-                      <ArrowRight className="h-5 w-5" />
-                    </>
-                  )}
+                  <Link to="/checkout">
+                    <CreditCard className="h-5 w-5" />
+                    Finalizar compra
+                    <ArrowRight className="h-5 w-5" />
+                  </Link>
                 </Button>
-
-                {errorPago && (
-                  <p className="text-sm text-red-600 text-center mb-4">
-                    {errorPago}
-                  </p>
-                )}
 
                 <p className="text-xs text-center text-carbon-500 mb-4">
                   Al realizar el pedido aceptas nuestros términos y condiciones

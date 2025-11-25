@@ -17,7 +17,8 @@ class Settings(BaseSettings):
 
     # Supabase (requerido en producción, opcional en desarrollo)
     supabase_url: str = ""
-    supabase_key: str = ""
+    supabase_key: str = ""  # anon key para frontend
+    supabase_service_role_key: str = ""  # service_role key para backend (bypasea RLS)
 
     # CORS - URLs permitidas (separadas por coma)
     cors_origins: str = "http://localhost:5173,http://localhost:3000"
@@ -33,7 +34,9 @@ class Settings(BaseSettings):
 
     # Email (Resend)
     resend_api_key: str = ""
-    email_from: str = "The Lobby Beauty <noreply@thelobbybeauty.com>"
+    # En desarrollo usar: "The Lobby Beauty <onboarding@resend.dev>"
+    # En produccion con dominio verificado: "The Lobby Beauty <noreply@thelobbybeauty.com>"
+    email_from: str = "The Lobby Beauty <onboarding@resend.dev>"
 
     class Config:
         env_file = ".env"

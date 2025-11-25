@@ -34,19 +34,32 @@ export function Servicios() {
 
   // Cargar datos de Supabase
   useEffect(() => {
+    let cancelled = false;
+
     async function cargarDatos() {
       try {
         setLoading(true);
+        setError(null);
+
         const serviciosData = await getServicios();
-        setServicios(serviciosData);
+
+        if (!cancelled) {
+          setServicios(serviciosData);
+        }
       } catch (err) {
-        setError("Error al cargar los servicios");
-        console.error(err);
+        console.error("Error cargando servicios:", err);
+        if (!cancelled) {
+          setError("Error al cargar los servicios. Pulsa Reintentar.");
+        }
       } finally {
-        setLoading(false);
+        if (!cancelled) {
+          setLoading(false);
+        }
       }
     }
     cargarDatos();
+
+    return () => { cancelled = true; };
   }, []);
 
   // Filtrar servicios

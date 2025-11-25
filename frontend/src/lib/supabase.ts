@@ -7,7 +7,13 @@ if (!supabaseUrl || !supabaseAnonKey) {
   throw new Error("Missing Supabase environment variables");
 }
 
-export const supabase = createClient(supabaseUrl, supabaseAnonKey);
+export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
+  auth: {
+    persistSession: true,
+    autoRefreshToken: true,
+    detectSessionInUrl: false, // Desactivar - no usamos auth tokens en URL (solo Stripe session_id)
+  },
+});
 
 // Re-export types from Supabase
 export type { User, Session };
@@ -707,6 +713,8 @@ export function generarHorariosDisponibles(
 
 // Obtener todas las citas de un rango de fechas (para admin)
 export async function getCitasRango(desde: string, hasta: string) {
+  console.log("getCitasRango llamado:", { desde, hasta });
+
   const { data, error } = await supabase
     .from("reservas")
     .select(`
@@ -719,6 +727,8 @@ export async function getCitasRango(desde: string, hasta: string) {
     .in("estado", ["pendiente", "confirmada", "completada"])
     .order("fecha")
     .order("hora");
+
+  console.log("getCitasRango resultado:", { data, error, count: data?.length });
 
   if (error) throw error;
   return data as Reserva[];
@@ -773,6 +783,8 @@ export interface CrearCitaData extends Omit<CrearReservaData, "empleado_id"> {
 
 // Crear cita desde agenda (admin/profesional)
 export async function crearCita(datos: CrearCitaData) {
+  console.log("Creando cita con datos:", datos);
+
   const { data, error } = await supabase
     .from("reservas")
     .insert({
@@ -786,7 +798,10 @@ export async function crearCita(datos: CrearCitaData) {
     `)
     .single();
 
+  console.log("Resultado crear cita:", { data, error });
+
   if (error) {
+    console.error("Error creando cita:", error);
     if (error.code === "23505") {
       throw new Error("Este empleado ya tiene una cita a esa hora.");
     }
@@ -875,4 +890,109 @@ export function generarHorariosEmpleado(
   }
 
   return slots.sort();
+}
+
+// ============== PEDIDOS ==============
+
+export type EstadoPedido = "pendiente" | "pagado" | "preparando" | "enviado" | "entregado" | "cancelado";
+
+export interface Pedido {
+  id: number;
+  usuario_id: string | null;
+  direccion_id: number | null;
+  estado: EstadoPedido;
+  subtotal: number;
+  coste_envio: number;
+  total: number;
+  metodo_pago: string | null;
+  stripe_payment_id: string | null;
+  notas: string | null;
+  nombre_envio: string | null;
+  direccion_envio: string | null;
+  ciudad_envio: string | null;
+  cp_envio: string | null;
+  telefono_envio: string | null;
+  created_at: string;
+  updated_at: string;
+  // Relaciones
+  items?: PedidoItem[];
+}
+
+export interface PedidoItem {
+  id: number;
+  pedido_id: number;
+  producto_id: number | null;
+  cantidad: number;
+  precio_unitario: number;
+  precio_total: number;
+  nombre_producto: string | null;
+  created_at: string;
+  // Relación
+  producto?: Producto;
+}
+
+// Obtener pedidos del usuario actual
+export async function getMisPedidos(userId: string) {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select(`
+      *,
+      items:pedido_items(
+        *,
+        producto:productos(id, nombre, imagen_url)
+      )
+    `)
+    .eq("usuario_id", userId)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data as Pedido[];
+}
+
+// Obtener un pedido específico
+export async function getPedidoById(pedidoId: number) {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select(`
+      *,
+      items:pedido_items(
+        *,
+        producto:productos(id, nombre, imagen_url)
+      )
+    `)
+    .eq("id", pedidoId)
+    .single();
+
+  if (error) throw error;
+  return data as Pedido;
+}
+
+// Obtener todos los pedidos (para admin)
+export async function getAllPedidos() {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .select(`
+      *,
+      items:pedido_items(
+        *,
+        producto:productos(id, nombre, imagen_url)
+      )
+    `)
+    .order("created_at", { ascending: false });
+
+  if (error) throw error;
+  return data as Pedido[];
+}
+
+// Actualizar estado de pedido (solo admin)
+export async function actualizarEstadoPedido(pedidoId: number, estado: EstadoPedido) {
+  const { data, error } = await supabase
+    .from("pedidos")
+    .update({ estado })
+    .eq("id", pedidoId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Pedido;
 }

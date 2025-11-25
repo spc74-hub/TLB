@@ -39,7 +39,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Cargar perfil cuando hay usuario
+  // Cargar perfil cuando hay usuario (NO bloqueante)
   const cargarPerfil = async (userId: string) => {
     try {
       const perfilData = await obtenerPerfil(userId);
@@ -52,33 +52,48 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   // Inicializar autenticación
   useEffect(() => {
-    // Obtener sesión inicial
-    supabase.auth.getSession().then(async ({ data: { session } }) => {
+    let isMounted = true;
+
+    // Obtener sesión inicial de forma NO bloqueante
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      if (!isMounted) return;
+
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false); // Terminar loading INMEDIATAMENTE
+
+      // Cargar perfil en background (no bloquea)
       if (session?.user) {
-        await cargarPerfil(session.user.id);
+        cargarPerfil(session.user.id);
       }
+    }).catch((err) => {
+      if (!isMounted) return;
+      console.error("Error obteniendo sesión:", err);
       setLoading(false);
     });
 
     // Escuchar cambios de autenticación
     const {
       data: { subscription },
-    } = supabase.auth.onAuthStateChange(async (_event, session) => {
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      if (!isMounted) return;
+
       setSession(session);
       setUser(session?.user ?? null);
+      setLoading(false);
 
+      // Cargar perfil en background
       if (session?.user) {
-        await cargarPerfil(session.user.id);
+        cargarPerfil(session.user.id);
       } else {
         setPerfil(null);
       }
-
-      setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      isMounted = false;
+      subscription.unsubscribe();
+    };
   }, []);
 
   // Login
