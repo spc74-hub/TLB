@@ -1,3 +1,4 @@
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -7,13 +8,18 @@ import {
   Calendar,
   Star,
   CheckCircle2,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { ServiceCard } from "@/components/servicios";
-import { getServicioPorId, getServiciosPorCategoria } from "@/lib/mock-data";
-import type { CategoriaServicio } from "@/types";
+import {
+  getServicioById,
+  getServicios,
+  type Servicio,
+  type CategoriaServicio,
+} from "@/lib/supabase";
 
 const categoriaLabels: Record<CategoriaServicio, string> = {
   manicura: "Manicura",
@@ -27,9 +33,50 @@ export function ServicioDetalle() {
   const { id } = useParams<{ id: string }>();
   const navigate = useNavigate();
 
-  const servicio = id ? getServicioPorId(parseInt(id)) : undefined;
+  const [servicio, setServicio] = useState<Servicio | null>(null);
+  const [serviciosRelacionados, setServiciosRelacionados] = useState<Servicio[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!servicio) {
+  useEffect(() => {
+    async function cargarServicio() {
+      if (!id) return;
+      try {
+        setLoading(true);
+        setError(null);
+        const servicioData = await getServicioById(parseInt(id));
+        setServicio(servicioData);
+
+        // Cargar servicios relacionados
+        if (servicioData) {
+          const todosServicios = await getServicios(servicioData.categoria);
+          const relacionados = todosServicios
+            .filter((s) => s.id !== servicioData.id)
+            .slice(0, 3);
+          setServiciosRelacionados(relacionados);
+        }
+      } catch (err) {
+        setError("Servicio no encontrado");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    cargarServicio();
+  }, [id]);
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center bg-crudo-50">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-salvia-500 mx-auto mb-4" />
+          <p className="text-carbon-600">Cargando servicio...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !servicio) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center">
         <div className="text-center">
@@ -46,11 +93,6 @@ export function ServicioDetalle() {
       </div>
     );
   }
-
-  // Obtener servicios relacionados (misma categoría, excluyendo el actual)
-  const serviciosRelacionados = getServiciosPorCategoria(servicio.categoria)
-    .filter((s) => s.id !== servicio.id)
-    .slice(0, 3);
 
   const formatPrecio = (precio: number) => {
     return new Intl.NumberFormat("es-ES", {

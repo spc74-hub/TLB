@@ -11,7 +11,11 @@ import {
   Tienda,
   ProductoDetalle,
   Carrito,
+  Login,
+  Registro,
+  Perfil,
 } from "@/pages";
+import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function App() {
   return (
@@ -27,6 +31,9 @@ function App() {
           <Route path="reservar" element={<Reservar />} />
           <Route path="nosotros" element={<Nosotros />} />
           <Route path="contacto" element={<Contacto />} />
+          <Route path="login" element={<Login />} />
+          <Route path="registro" element={<Registro />} />
+          <Route path="perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Route>
       </Routes>

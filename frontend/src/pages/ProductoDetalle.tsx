@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useParams, Link, useNavigate } from "react-router-dom";
 import {
   ArrowLeft,
@@ -12,11 +12,18 @@ import {
   Package,
   Truck,
   RotateCcw,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { getProductoPorId, categoriasProducto, getProductosPorCategoria } from "@/lib/mock-productos";
+import {
+  getProductoById,
+  getCategoriasProductos,
+  getProductosPorCategoria,
+  type Producto,
+  type CategoriaProductoInfo,
+} from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
 
 export function ProductoDetalle() {
@@ -25,9 +32,75 @@ export function ProductoDetalle() {
   const [cantidad, setCantidad] = useState(1);
   const { agregarProducto, estaEnCarrito, obtenerCantidad, cantidadTotal } = useCart();
 
-  const producto = id ? getProductoPorId(parseInt(id)) : undefined;
+  const [producto, setProducto] = useState<Producto | null>(null);
+  const [categorias, setCategorias] = useState<CategoriaProductoInfo[]>([]);
+  const [productosRelacionados, setProductosRelacionados] = useState<Producto[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
-  if (!producto) {
+  useEffect(() => {
+    async function cargarProducto() {
+      if (!id) return;
+      try {
+        setLoading(true);
+        setError(null);
+        const [productoData, categoriasData] = await Promise.all([
+          getProductoById(parseInt(id)),
+          getCategoriasProductos(),
+        ]);
+        setProducto(productoData);
+        setCategorias(categoriasData);
+
+        // Cargar productos relacionados
+        if (productoData) {
+          const relacionados = await getProductosPorCategoria(
+            productoData.categoria,
+            productoData.id,
+            4
+          );
+          setProductosRelacionados(relacionados);
+        }
+      } catch (err) {
+        setError("Producto no encontrado");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    cargarProducto();
+  }, [id]);
+
+  // Adaptar producto para el carrito
+  const adaptarProductoParaCarrito = (prod: Producto) => ({
+    id: prod.id,
+    nombre: prod.nombre,
+    descripcion: prod.descripcion,
+    descripcion_corta: prod.descripcion_corta,
+    categoria: prod.categoria,
+    precio: Number(prod.precio),
+    precio_oferta: prod.precio_oferta ? Number(prod.precio_oferta) : undefined,
+    imagen_url: prod.imagen_url || "",
+    stock: prod.stock,
+    es_natural: prod.es_natural,
+    es_vegano: prod.es_vegano,
+    es_cruelty_free: prod.es_cruelty_free,
+    activo: prod.activo,
+    destacado: prod.destacado,
+    created_at: prod.created_at,
+  });
+
+  if (loading) {
+    return (
+      <div className="min-h-[60vh] flex items-center justify-center bg-crudo-50">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-salvia-500 mx-auto mb-4" />
+          <p className="text-carbon-600">Cargando producto...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error || !producto) {
     return (
       <div className="min-h-[60vh] flex items-center justify-center bg-crudo-50">
         <div className="text-center">
@@ -45,13 +118,10 @@ export function ProductoDetalle() {
     );
   }
 
-  const categoria = categoriasProducto.find((c) => c.slug === producto.categoria);
-  const productosRelacionados = getProductosPorCategoria(producto.categoria)
-    .filter((p) => p.id !== producto.id)
-    .slice(0, 4);
+  const categoria = categorias.find((c) => c.slug === producto.categoria);
 
   const handleAgregarCarrito = () => {
-    agregarProducto(producto, cantidad);
+    agregarProducto(adaptarProductoParaCarrito(producto), cantidad);
     setCantidad(1);
   };
 
@@ -161,18 +231,18 @@ export function ProductoDetalle() {
               {producto.precio_oferta ? (
                 <div className="flex items-baseline gap-3">
                   <span className="font-display text-4xl font-bold text-terracota-600">
-                    {producto.precio_oferta.toFixed(2)}€
+                    {Number(producto.precio_oferta).toFixed(2)}€
                   </span>
                   <span className="text-xl text-carbon-400 line-through">
-                    {producto.precio.toFixed(2)}€
+                    {Number(producto.precio).toFixed(2)}€
                   </span>
                   <Badge className="bg-terracota-100 text-terracota-700">
-                    Ahorras {(producto.precio - producto.precio_oferta).toFixed(2)}€
+                    Ahorras {(Number(producto.precio) - Number(producto.precio_oferta)).toFixed(2)}€
                   </Badge>
                 </div>
               ) : (
                 <span className="font-display text-4xl font-bold text-carbon-800">
-                  {producto.precio.toFixed(2)}€
+                  {Number(producto.precio).toFixed(2)}€
                 </span>
               )}
               <p className="text-sm text-carbon-500 mt-1">IVA incluido</p>
@@ -302,15 +372,15 @@ export function ProductoDetalle() {
                         {prod.precio_oferta ? (
                           <>
                             <span className="font-bold text-terracota-600">
-                              {prod.precio_oferta.toFixed(2)}€
+                              {Number(prod.precio_oferta).toFixed(2)}€
                             </span>
                             <span className="text-sm text-carbon-400 line-through">
-                              {prod.precio.toFixed(2)}€
+                              {Number(prod.precio).toFixed(2)}€
                             </span>
                           </>
                         ) : (
                           <span className="font-bold text-carbon-800">
-                            {prod.precio.toFixed(2)}€
+                            {Number(prod.precio).toFixed(2)}€
                           </span>
                         )}
                       </div>

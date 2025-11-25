@@ -3,7 +3,7 @@ import { Clock, Leaf, ArrowRight } from "lucide-react";
 import { Card, CardContent, CardFooter } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import type { Servicio } from "@/types";
+import type { Servicio } from "@/lib/supabase";
 
 interface ServiceCardProps {
   servicio: Servicio;

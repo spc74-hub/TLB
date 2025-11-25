@@ -35,13 +35,15 @@ export interface Categoria {
 export interface Servicio {
   id: number;
   nombre: string;
-  descripcion?: string;
+  descripcion?: string | null;
   categoria: CategoriaServicio;
   duracion_minutos: number;
   precio: number;
+  precio_oferta?: number | null;
   es_libre_toxicos: boolean;
-  imagen_url?: string;
+  imagen_url?: string | null;
   activo: boolean;
+  destacado?: boolean;
   created_at: string;
   updated_at?: string;
 }

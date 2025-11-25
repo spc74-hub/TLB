@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import {
   Search,
@@ -9,18 +9,29 @@ import {
   X,
   Check,
   SlidersHorizontal,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { productos, categoriasProducto } from "@/lib/mock-productos";
+import {
+  getProductos,
+  getCategoriasProductos,
+  type Producto,
+  type CategoriaProductoInfo,
+  type CategoriaProducto,
+} from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
-import type { CategoriaProducto } from "@/types";
 
 export function Tienda() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoriaParam = searchParams.get("categoria") as CategoriaProducto | null;
+
+  const [productos, setProductos] = useState<Producto[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaProductoInfo[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
 
   const [busqueda, setBusqueda] = useState("");
   const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<CategoriaProducto | null>(
@@ -33,23 +44,43 @@ export function Tienda() {
 
   const { agregarProducto, estaEnCarrito, cantidadTotal } = useCart();
 
-  const productosFiltrados = useMemo(() => {
-    return productos.filter((producto) => {
-      if (!producto.activo) return false;
-      if (categoriaSeleccionada && producto.categoria !== categoriaSeleccionada) return false;
-      if (soloNaturales && !producto.es_natural) return false;
-      if (soloVeganos && !producto.es_vegano) return false;
-      if (soloOfertas && !producto.precio_oferta) return false;
-      if (busqueda) {
-        const terminoLower = busqueda.toLowerCase();
-        return (
-          producto.nombre.toLowerCase().includes(terminoLower) ||
-          producto.descripcion_corta.toLowerCase().includes(terminoLower)
-        );
+  // Cargar datos de Supabase
+  useEffect(() => {
+    async function cargarDatos() {
+      try {
+        setLoading(true);
+        const [productosData, categoriasData] = await Promise.all([
+          getProductos(),
+          getCategoriasProductos(),
+        ]);
+        setProductos(productosData);
+        setCategorias(categoriasData);
+      } catch (err) {
+        setError("Error al cargar los productos");
+        console.error(err);
+      } finally {
+        setLoading(false);
       }
-      return true;
-    });
-  }, [categoriaSeleccionada, soloNaturales, soloVeganos, soloOfertas, busqueda]);
+    }
+    cargarDatos();
+  }, []);
+
+  // Filtrar productos
+  const productosFiltrados = productos.filter((producto) => {
+    if (!producto.activo) return false;
+    if (categoriaSeleccionada && producto.categoria !== categoriaSeleccionada) return false;
+    if (soloNaturales && !producto.es_natural) return false;
+    if (soloVeganos && !producto.es_vegano) return false;
+    if (soloOfertas && !producto.precio_oferta) return false;
+    if (busqueda) {
+      const terminoLower = busqueda.toLowerCase();
+      return (
+        producto.nombre.toLowerCase().includes(terminoLower) ||
+        producto.descripcion_corta.toLowerCase().includes(terminoLower)
+      );
+    }
+    return true;
+  });
 
   const handleCategoriaClick = (slug: CategoriaProducto | null) => {
     setCategoriaSeleccionada(slug);
@@ -70,6 +101,47 @@ export function Tienda() {
   };
 
   const hayFiltrosActivos = categoriaSeleccionada || soloNaturales || soloVeganos || soloOfertas || busqueda;
+
+  // Adaptar producto para el carrito
+  const adaptarProductoParaCarrito = (producto: Producto) => ({
+    id: producto.id,
+    nombre: producto.nombre,
+    descripcion: producto.descripcion,
+    descripcion_corta: producto.descripcion_corta,
+    categoria: producto.categoria,
+    precio: Number(producto.precio),
+    precio_oferta: producto.precio_oferta ? Number(producto.precio_oferta) : undefined,
+    imagen_url: producto.imagen_url || "",
+    stock: producto.stock,
+    es_natural: producto.es_natural,
+    es_vegano: producto.es_vegano,
+    es_cruelty_free: producto.es_cruelty_free,
+    activo: producto.activo,
+    destacado: producto.destacado,
+    created_at: producto.created_at,
+  });
+
+  if (loading) {
+    return (
+      <div className="bg-crudo-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-salvia-500 mx-auto mb-4" />
+          <p className="text-carbon-600">Cargando productos...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="bg-crudo-50 min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-terracota-600 mb-4">{error}</p>
+          <Button onClick={() => window.location.reload()}>Reintentar</Button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-crudo-50 min-h-screen">
@@ -190,12 +262,12 @@ export function Tienda() {
           >
             Todos
           </Button>
-          {categoriasProducto.map((cat) => (
+          {categorias.map((cat) => (
             <Button
               key={cat.slug}
               variant={categoriaSeleccionada === cat.slug ? "default" : "outline"}
               size="sm"
-              onClick={() => handleCategoriaClick(cat.slug)}
+              onClick={() => handleCategoriaClick(cat.slug as CategoriaProducto)}
               className={
                 categoriaSeleccionada === cat.slug
                   ? "bg-salvia-500 hover:bg-salvia-600"
@@ -239,7 +311,7 @@ export function Tienda() {
                 <CardContent className="p-4">
                   <Link to={`/tienda/${producto.id}`}>
                     <p className="text-xs text-salvia-600 uppercase tracking-wide mb-1">
-                      {categoriasProducto.find((c) => c.slug === producto.categoria)?.nombre}
+                      {categorias.find((c) => c.slug === producto.categoria)?.nombre}
                     </p>
                     <h3 className="font-display text-lg font-semibold text-carbon-800 mb-2 group-hover:text-salvia-600 transition-colors line-clamp-2">
                       {producto.nombre}
@@ -253,21 +325,21 @@ export function Tienda() {
                       {producto.precio_oferta ? (
                         <>
                           <span className="font-bold text-lg text-terracota-600">
-                            {producto.precio_oferta.toFixed(2)}€
+                            {Number(producto.precio_oferta).toFixed(2)}€
                           </span>
                           <span className="text-sm text-carbon-400 line-through">
-                            {producto.precio.toFixed(2)}€
+                            {Number(producto.precio).toFixed(2)}€
                           </span>
                         </>
                       ) : (
                         <span className="font-bold text-lg text-carbon-800">
-                          {producto.precio.toFixed(2)}€
+                          {Number(producto.precio).toFixed(2)}€
                         </span>
                       )}
                     </div>
                     <Button
                       size="sm"
-                      onClick={() => agregarProducto(producto)}
+                      onClick={() => agregarProducto(adaptarProductoParaCarrito(producto))}
                       disabled={producto.stock === 0}
                       className={
                         estaEnCarrito(producto.id)

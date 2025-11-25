@@ -1,9 +1,17 @@
-import { Link } from "react-router-dom";
-import { Menu, X, Leaf, ShoppingCart } from "lucide-react";
+import { Link, useNavigate } from "react-router-dom";
+import { Menu, X, Leaf, ShoppingCart, User, LogOut, Loader2 } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
 import { useCart } from "@/context/CartContext";
+import { useAuth } from "@/context/AuthContext";
 
 const navegacion = [
   { nombre: "Inicio", href: "/" },
@@ -17,6 +25,15 @@ const navegacion = [
 export function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
   const { cantidadTotal } = useCart();
+  const { user, perfil, loading, logout } = useAuth();
+  const navigate = useNavigate();
+
+  const handleLogout = async () => {
+    await logout();
+    navigate("/");
+  };
+
+  const nombreUsuario = perfil?.nombre || user?.email?.split("@")[0] || "Usuario";
 
   return (
     <header className="bg-crudo-50 border-b border-crudo-300 sticky top-0 z-50">
@@ -49,6 +66,43 @@ export function Header() {
                 </Badge>
               )}
             </Link>
+
+            {/* Auth buttons */}
+            {loading ? (
+              <Loader2 className="h-5 w-5 animate-spin text-carbon-400" />
+            ) : user ? (
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" className="flex items-center gap-2 text-carbon-600 hover:text-salvia-600">
+                    <User className="h-5 w-5" />
+                    <span className="hidden lg:inline">{nombreUsuario}</span>
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem asChild>
+                    <Link to="/perfil" className="flex items-center gap-2">
+                      <User className="h-4 w-4" />
+                      Mi perfil
+                    </Link>
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-terracota-600">
+                    <LogOut className="h-4 w-4" />
+                    Cerrar sesión
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            ) : (
+              <div className="flex items-center gap-2">
+                <Button asChild variant="ghost" className="text-carbon-600 hover:text-salvia-600">
+                  <Link to="/login">Iniciar sesión</Link>
+                </Button>
+                <Button asChild className="bg-salvia-500 hover:bg-salvia-600 text-crudo-50 hidden lg:inline-flex">
+                  <Link to="/registro">Registrarse</Link>
+                </Button>
+              </div>
+            )}
+
             <Button asChild className="bg-salvia-500 hover:bg-salvia-600 text-crudo-50">
               <Link to="/reservar">Reservar Cita</Link>
             </Button>
@@ -92,6 +146,49 @@ export function Header() {
                   {item.nombre}
                 </Link>
               ))}
+
+              {/* Auth en móvil */}
+              <div className="border-t border-crudo-200 pt-4 mt-2">
+                {user ? (
+                  <>
+                    <div className="flex items-center gap-2 text-carbon-700 font-medium mb-3">
+                      <User className="h-5 w-5" />
+                      {nombreUsuario}
+                    </div>
+                    <Link
+                      to="/perfil"
+                      className="block text-carbon-600 hover:text-salvia-600 py-2"
+                      onClick={() => setMenuAbierto(false)}
+                    >
+                      Mi perfil
+                    </Link>
+                    <button
+                      onClick={() => {
+                        handleLogout();
+                        setMenuAbierto(false);
+                      }}
+                      className="text-terracota-600 hover:text-terracota-700 py-2 flex items-center gap-2"
+                    >
+                      <LogOut className="h-4 w-4" />
+                      Cerrar sesión
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex flex-col gap-2">
+                    <Button asChild variant="outline" className="w-full">
+                      <Link to="/login" onClick={() => setMenuAbierto(false)}>
+                        Iniciar sesión
+                      </Link>
+                    </Button>
+                    <Button asChild className="w-full bg-salvia-500 hover:bg-salvia-600">
+                      <Link to="/registro" onClick={() => setMenuAbierto(false)}>
+                        Registrarse
+                      </Link>
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               <Button asChild className="bg-salvia-500 hover:bg-salvia-600 text-crudo-50 w-full">
                 <Link to="/reservar" onClick={() => setMenuAbierto(false)}>
                   Reservar Cita

@@ -1,11 +1,14 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
-import { Leaf, Search, SlidersHorizontal } from "lucide-react";
+import { Leaf, Search, SlidersHorizontal, Loader2 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { ServiceCard, CategoryFilter } from "@/components/servicios";
-import { servicios } from "@/lib/mock-data";
-import type { CategoriaServicio } from "@/types";
+import {
+  getServicios,
+  type Servicio,
+  type CategoriaServicio,
+} from "@/lib/supabase";
 
 const categoriaLabels: Record<CategoriaServicio, string> = {
   manicura: "Manicura",
@@ -19,11 +22,32 @@ export function Servicios() {
   const [searchParams, setSearchParams] = useSearchParams();
   const categoriaParam = searchParams.get("categoria") as CategoriaServicio | null;
 
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
   const [categoriaActiva, setCategoriaActiva] = useState<CategoriaServicio | "todas">(
     categoriaParam || "todas"
   );
   const [busqueda, setBusqueda] = useState("");
   const [soloNaturales, setSoloNaturales] = useState(false);
+
+  // Cargar datos de Supabase
+  useEffect(() => {
+    async function cargarDatos() {
+      try {
+        setLoading(true);
+        const serviciosData = await getServicios();
+        setServicios(serviciosData);
+      } catch (err) {
+        setError("Error al cargar los servicios");
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    }
+    cargarDatos();
+  }, []);
 
   // Filtrar servicios
   const serviciosFiltrados = useMemo(() => {
@@ -49,7 +73,7 @@ export function Servicios() {
       // Solo activos
       return servicio.activo;
     });
-  }, [categoriaActiva, busqueda, soloNaturales]);
+  }, [servicios, categoriaActiva, busqueda, soloNaturales]);
 
   // Agrupar por categoría cuando se muestran todos
   const serviciosAgrupados = useMemo(() => {
@@ -77,6 +101,33 @@ export function Servicios() {
     }
     setSearchParams(searchParams);
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-crudo-50 flex items-center justify-center">
+        <div className="text-center">
+          <Loader2 className="h-12 w-12 animate-spin text-salvia-500 mx-auto mb-4" />
+          <p className="text-carbon-600">Cargando servicios...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-crudo-50 flex items-center justify-center">
+        <div className="text-center">
+          <p className="text-terracota-600 mb-4">{error}</p>
+          <button
+            onClick={() => window.location.reload()}
+            className="bg-salvia-500 text-white px-4 py-2 rounded-lg hover:bg-salvia-600"
+          >
+            Reintentar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-crudo-50">

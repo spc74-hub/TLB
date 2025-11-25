@@ -20,6 +20,17 @@ class CategoriaServicio(str, Enum):
     PESTANAS = "pestanas"
 
 
+class CategoriaProducto(str, Enum):
+    """Categorías de productos disponibles."""
+    MANICURA = "manicura"
+    PEDICURA = "pedicura"
+    FACIAL = "facial"
+    CORPORAL = "corporal"
+    CABELLO = "cabello"
+    ACCESORIOS = "accesorios"
+    KITS = "kits"
+
+
 class EstadoReserva(str, Enum):
     """Estados posibles de una reserva."""
     PENDIENTE = "pendiente"
@@ -68,9 +79,11 @@ class ServicioBase(BaseModel):
     categoria: CategoriaServicio
     duracion_minutos: int = Field(..., ge=15, le=240)
     precio: float = Field(..., ge=0)
+    precio_oferta: Optional[float] = Field(None, ge=0)
     es_libre_toxicos: bool = Field(default=True, description="Libre de TPO/DMPT")
     imagen_url: Optional[str] = None
     activo: bool = True
+    destacado: bool = False
 
 
 class ServicioCreate(ServicioBase):
@@ -85,9 +98,11 @@ class ServicioUpdate(BaseModel):
     categoria: Optional[CategoriaServicio] = None
     duracion_minutos: Optional[int] = Field(None, ge=15, le=240)
     precio: Optional[float] = Field(None, ge=0)
+    precio_oferta: Optional[float] = Field(None, ge=0)
     es_libre_toxicos: Optional[bool] = None
     imagen_url: Optional[str] = None
     activo: Optional[bool] = None
+    destacado: Optional[bool] = None
 
 
 class Servicio(ServicioBase):
@@ -208,3 +223,85 @@ class ListaServicios(BaseModel):
     total: int
     pagina: int
     por_pagina: int
+
+
+# ============== PRODUCTOS ==============
+
+class ProductoBase(BaseModel):
+    """Esquema base para productos."""
+    nombre: str = Field(..., min_length=2, max_length=200)
+    descripcion: str = Field(..., min_length=10)
+    descripcion_corta: str = Field(..., min_length=10, max_length=200)
+    categoria: CategoriaProducto
+    precio: float = Field(..., ge=0)
+    precio_oferta: Optional[float] = Field(None, ge=0)
+    imagen_url: Optional[str] = None
+    imagenes_extra: Optional[list[str]] = None
+    stock: int = Field(default=0, ge=0)
+    es_natural: bool = True
+    es_vegano: bool = False
+    es_cruelty_free: bool = True
+    ingredientes: Optional[list[str]] = None
+    modo_uso: Optional[str] = None
+    activo: bool = True
+    destacado: bool = False
+
+
+class ProductoCreate(ProductoBase):
+    """Esquema para crear un producto."""
+    pass
+
+
+class ProductoUpdate(BaseModel):
+    """Esquema para actualizar un producto."""
+    nombre: Optional[str] = Field(None, min_length=2, max_length=200)
+    descripcion: Optional[str] = Field(None, min_length=10)
+    descripcion_corta: Optional[str] = Field(None, min_length=10, max_length=200)
+    categoria: Optional[CategoriaProducto] = None
+    precio: Optional[float] = Field(None, ge=0)
+    precio_oferta: Optional[float] = Field(None, ge=0)
+    imagen_url: Optional[str] = None
+    imagenes_extra: Optional[list[str]] = None
+    stock: Optional[int] = Field(None, ge=0)
+    es_natural: Optional[bool] = None
+    es_vegano: Optional[bool] = None
+    es_cruelty_free: Optional[bool] = None
+    ingredientes: Optional[list[str]] = None
+    modo_uso: Optional[str] = None
+    activo: Optional[bool] = None
+    destacado: Optional[bool] = None
+
+
+class Producto(ProductoBase):
+    """Esquema completo de producto con ID."""
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ListaProductos(BaseModel):
+    """Lista paginada de productos."""
+    items: list[Producto]
+    total: int
+    pagina: int
+    por_pagina: int
+
+
+# ============== CATEGORÍAS DE PRODUCTOS ==============
+
+class CategoriaProductoInfo(BaseModel):
+    """Información de categoría de producto."""
+    id: int
+    nombre: str
+    slug: str
+    descripcion: Optional[str] = None
+    icono: Optional[str] = None
+    imagen_url: Optional[str] = None
+    orden: int = 0
+    activo: bool = True
+
+    class Config:
+        from_attributes = True

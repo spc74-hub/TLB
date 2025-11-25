@@ -1,6 +1,6 @@
 import { Hand, Sparkles, Eye } from "lucide-react";
 import { cn } from "@/lib/utils";
-import type { CategoriaServicio } from "@/types";
+import type { CategoriaServicio } from "@/lib/supabase";
 
 interface CategoryFilterProps {
   categoriaActiva: CategoriaServicio | "todas";
