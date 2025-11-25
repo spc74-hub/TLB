@@ -1,0 +1,18 @@
+# Framework web
+fastapi==0.115.5
+uvicorn[standard]==0.32.1
+
+# Base de datos
+supabase==2.10.0
+
+# Validación y configuración
+pydantic==2.10.2
+pydantic-settings==2.6.1
+python-dotenv==1.0.1
+
+# Utilidades
+python-multipart==0.0.17
+email-validator==2.2.0
+
+# CORS
+starlette==0.41.3

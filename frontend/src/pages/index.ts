@@ -1,0 +1,6 @@
+export { Home } from "./Home";
+export { Servicios } from "./Servicios";
+export { ServicioDetalle } from "./ServicioDetalle";
+export { Nosotros } from "./Nosotros";
+export { Contacto } from "./Contacto";
+export { Reservar } from "./Reservar";
