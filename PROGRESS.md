@@ -47,28 +47,33 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ---
 
-## Fase 2: Funcionalidades de Ecommerce 🔲 PENDIENTE
+## Fase 2: Funcionalidades de Ecommerce ⏳ EN PROGRESO
 
-### 2.1 Pasarela de Pago
-- [ ] Integrar Stripe
-- [ ] Configurar webhooks
-- [ ] Gestión de métodos de pago
+### 2.1 Pasarela de Pago ✅ COMPLETADO
+- [x] Integrar Stripe (checkout session)
+- [x] Página de pago exitoso
+- [x] Redirección a Stripe Checkout
+- [ ] Configurar webhooks para confirmar pagos
+- [ ] Crear pedido en BD cuando se paga
 
 ### 2.2 Proceso de Checkout
-- [ ] Formulario de datos de envío
-- [ ] Resumen de pedido
-- [ ] Confirmación de pago
-- [ ] Página de éxito/error
+- [ ] Formulario de datos de envío (antes del pago)
+- [x] Resumen de pedido (en carrito)
+- [x] Confirmación de pago (página éxito)
+- [x] Página de éxito/error
 
 ### 2.3 Gestión de Pedidos
 - [ ] Crear pedido en base de datos
 - [ ] Estados de pedido (pendiente, pagado, enviado, entregado)
 - [ ] Historial de pedidos del usuario
+- [ ] Lista de pedidos en admin `/admin/pedidos`
 
-### 2.4 Notificaciones
+### 2.4 Notificaciones (Resend - AL FINAL)
+- [x] Sistema de emails implementado (código listo)
+- [ ] Configurar cuenta Resend y API key
 - [ ] Email de confirmación de pedido
-- [ ] Email de actualización de estado
-- [ ] Plantillas de email
+- [ ] Email de confirmación de cita
+- [ ] Recordatorio 24h antes de cita
 
 ---
 
@@ -96,18 +101,20 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Admin: ve todas las citas, puede crear/editar/eliminar
 - [x] Profesional: ve solo sus citas, puede editar las suyas
 - [x] ProtectedRoute con verificación de rol
-- [ ] Panel de gestión de empleados (crear/editar)
+- [x] Panel de gestión de empleados `/admin/empleados`
 
-### 3.4 Confirmaciones
-- [ ] Email de confirmación de cita
+### 3.4 Confirmaciones (Resend - AL FINAL)
+- [x] Código de email de confirmación de cita (listo)
+- [x] Código de email de cancelación (listo)
+- [ ] Configurar API key de Resend
 - [ ] Recordatorio 24h antes
 - [ ] SMS de recordatorio (opcional)
 
 ---
 
-## Fase 4: Panel de Administración ⏳ EN PROGRESO
+## Fase 4: Panel de Administración ✅ COMPLETADO
 
-### 4.1 Dashboard ✅ COMPLETADO
+### 4.1 Dashboard
 - [x] Layout con sidebar colapsable
 - [x] Vista general de estadísticas (citas, empleados, servicios, productos)
 - [x] Citas del día/semana
@@ -115,15 +122,15 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [ ] Pedidos recientes
 - [ ] Gráfico de ingresos
 
-### 4.2 Gestión de Contenido
-- [ ] CRUD de servicios (con campo es_interno)
-- [ ] CRUD de productos
+### 4.2 Gestión de Contenido ✅ COMPLETADO
+- [x] CRUD de servicios (con campo es_interno) `/admin/servicios`
+- [x] CRUD de productos `/admin/productos`
+- [x] Gestión de empleados `/admin/empleados`
 - [ ] Gestión de categorías
 - [ ] Subida de imágenes
-- [ ] Gestión de empleados
 
 ### 4.3 Gestión de Pedidos
-- [ ] Lista de pedidos
+- [ ] Lista de pedidos `/admin/pedidos`
 - [ ] Actualizar estados
 - [ ] Gestión de envíos
 
@@ -141,6 +148,7 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [ ] Historial de pedidos
 - [ ] Historial de citas
 - [x] Editar datos personales
+- [ ] Recuperación de contraseña (UI)
 
 ### 5.3 Funcionalidades Extra
 - [ ] Lista de favoritos/wishlist
@@ -150,26 +158,33 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ---
 
-## Fase 6: Despliegue 🔲 PENDIENTE
+## Fase 6: Despliegue 🔲 AL FINAL
 
 ### 6.1 Preparación
 - [ ] Variables de entorno de producción
 - [ ] Optimización de build
 - [ ] Tests básicos
 
-### 6.2 Frontend
-- [ ] Deploy en Vercel/Netlify
-- [ ] Configurar dominio personalizado
-- [ ] SSL/HTTPS
+### 6.2 Opciones de Hosting (GRATIS o muy barato)
 
-### 6.3 Backend
-- [ ] Deploy en Railway/Render/Fly.io
-- [ ] Base de datos en producción
-- [ ] Configurar backups
+**Opción A: Todo en servicios gratuitos (RECOMENDADO)**
+- Frontend: **Vercel** (gratis, dominio .vercel.app incluido)
+- Backend: **Render** (gratis, se "duerme" tras 15min sin uso) o **Railway** (5$ gratis/mes)
+- BD: **Supabase** (ya lo tenemos, gratis hasta 500MB)
+- Dominio: Usar subdominios gratuitos o comprar dominio (~10€/año)
 
-### 6.4 Post-lanzamiento
-- [ ] Monitorización de errores (Sentry)
-- [ ] Analytics (Google Analytics, Plausible)
+**Opción B: Usar hosting existente**
+- Si tu hosting actual soporta Node.js o tiene acceso SSH, podríamos deployar ahí
+- Necesitaría saber qué tipo de hosting tienes (cPanel, Plesk, VPS...)
+
+**Opción C: Nuevo dominio separado**
+- Comprar dominio nuevo (~10€/año en Namecheap/Porkbun)
+- Usar servicios gratuitos de Opción A
+- No afecta a tu web actual
+
+### 6.3 Post-lanzamiento
+- [ ] Monitorización de errores (Sentry - gratis)
+- [ ] Analytics (Google Analytics / Plausible)
 - [ ] SEO básico
 
 ---
@@ -240,6 +255,25 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Acciones rápidas y próximas citas
 - [x] Rutas /admin y /admin/agenda protegidas
 - [x] Navegación entre secciones admin
+- [x] CRUD de empleados `/admin/empleados`
+- [x] CRUD de servicios `/admin/servicios` (con campo es_interno)
+- [x] CRUD de productos `/admin/productos`
+
+### Integración Stripe (2025-11-25)
+- [x] Cuenta Stripe creada y configurada
+- [x] Backend: router de pagos con create-checkout-session
+- [x] Frontend: botón "Finalizar compra" en carrito
+- [x] Redirección a Stripe Checkout
+- [x] Página de pago exitoso `/pago-exitoso`
+- [x] Carrito se vacía tras pago exitoso
+
+### Sistema de Emails (2025-11-25)
+- [x] Servicio de email con Resend implementado
+- [x] Plantilla HTML de confirmación de cita
+- [x] Plantilla HTML de cancelación de cita
+- [x] Plantilla HTML de recordatorio (para cron)
+- [x] Envío en background (no bloquea API)
+- [ ] Pendiente: configurar API key de Resend
 
 ---
 
@@ -250,9 +284,9 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - **Backend:** FastAPI (Python)
 - **Base de datos:** PostgreSQL (Supabase)
 - **Autenticación:** Supabase Auth
-- **Pagos:** Stripe (por decidir)
-- **Email:** Resend / SendGrid (por decidir)
-- **Hosting:** Vercel (frontend) + Railway (backend)
+- **Pagos:** Stripe ✅
+- **Email:** Resend (código listo, pendiente API key)
+- **Hosting:** Por decidir (ver opciones en Fase 6)
 
 ### Paleta de Colores
 - Salvia (verde): Principal
@@ -261,24 +295,45 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - Carbon: Textos
 
 ### Rutas de Administración
-- `/admin` - Dashboard principal
-- `/admin/agenda` - Gestión de citas
-- `/admin/servicios` - (próximamente)
-- `/admin/productos` - (próximamente)
-- `/admin/empleados` - (próximamente)
+- `/admin` - Dashboard principal ✅
+- `/admin/agenda` - Gestión de citas ✅
+- `/admin/servicios` - CRUD servicios ✅
+- `/admin/productos` - CRUD productos ✅
+- `/admin/empleados` - CRUD empleados ✅
 - `/admin/pedidos` - (próximamente)
 - `/admin/configuracion` - (próximamente)
 
 ---
 
-## Próxima Sesión
+## Plan de Trabajo Actual
 
-**Tareas pendientes prioritarias:**
-1. CRUD de empleados desde panel admin
-2. CRUD de servicios con campo es_interno
-3. CRUD de productos
-4. Integración con pasarela de pago (Stripe)
-5. Email de confirmación de citas
+### PASO 1: Completar Ecommerce (AHORA)
+1. [ ] Formulario de datos de envío antes del checkout
+2. [ ] Webhook de Stripe para confirmar pagos
+3. [ ] Crear pedido en BD cuando pago confirmado
+4. [ ] Historial de pedidos del usuario
+5. [ ] Lista de pedidos en `/admin/pedidos`
+
+### PASO 2: Mejoras Admin Panel
+6. [ ] Gráfico de ingresos en dashboard
+7. [ ] Pedidos recientes en dashboard
+8. [ ] Subida de imágenes (productos/servicios)
+
+### PASO 3: UX/Cuenta de Usuario
+9. [ ] Historial de citas del usuario
+10. [ ] Historial de pedidos del usuario
+11. [ ] Recuperación de contraseña (UI)
+
+### PASO 4: Emails (Resend)
+12. [ ] Crear cuenta Resend
+13. [ ] Configurar API key
+14. [ ] Activar emails de confirmación
+
+### PASO 5: Despliegue (AL FINAL)
+15. [ ] Elegir opción de hosting
+16. [ ] Configurar variables de entorno
+17. [ ] Deploy frontend y backend
+18. [ ] Configurar dominio
 
 ---
 
@@ -290,8 +345,6 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [ ] Recordatorios SMS (24h antes)
 
 ### Dashboard Admin
-- [ ] Gráfico de ingresos (chart)
-- [ ] Pedidos recientes en dashboard
 - [ ] Exportar datos a Excel/CSV
 
 ### UX/UI
@@ -300,7 +353,6 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [ ] Skeleton loaders mientras carga
 
 ### Clientes
-- [ ] Historial de citas del cliente
 - [ ] Lista de favoritos/wishlist
 - [ ] Reseñas de productos
 - [ ] Newsletter con suscripción
