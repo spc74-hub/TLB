@@ -280,7 +280,38 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 4. Integración con pasarela de pago (Stripe)
 5. Email de confirmación de citas
 
-**Opcionales:**
-- Vista diaria en agenda
-- Arrastrar y soltar citas
-- Gráfico de ingresos en dashboard
+---
+
+## Backlog (Funcionalidades Opcionales)
+
+### Agenda
+- [ ] Vista diaria en agenda
+- [ ] Arrastrar y soltar citas (drag & drop)
+- [ ] Recordatorios SMS (24h antes)
+
+### Dashboard Admin
+- [ ] Gráfico de ingresos (chart)
+- [ ] Pedidos recientes en dashboard
+- [ ] Exportar datos a Excel/CSV
+
+### UX/UI
+- [ ] Modo oscuro
+- [ ] Animaciones de transición
+- [ ] Skeleton loaders mientras carga
+
+### Clientes
+- [ ] Historial de citas del cliente
+- [ ] Lista de favoritos/wishlist
+- [ ] Reseñas de productos
+- [ ] Newsletter con suscripción
+
+### SEO y Marketing
+- [ ] Meta tags dinámicos
+- [ ] Sitemap XML
+- [ ] Open Graph para redes sociales
+- [ ] Compartir en redes sociales
+
+### Integraciones
+- [ ] Google Calendar sync
+- [ ] WhatsApp Business API
+- [ ] Google Analytics / Plausible

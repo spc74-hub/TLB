@@ -343,6 +343,110 @@ export async function actualizarPassword(newPassword: string) {
   if (error) throw error;
 }
 
+// ============== PRODUCTOS (ADMIN) ==============
+
+// Obtener todos los productos (incluyendo inactivos, para admin)
+export async function getAllProductos() {
+  const { data, error } = await supabase
+    .from("productos")
+    .select("*")
+    .order("categoria")
+    .order("nombre");
+
+  if (error) throw error;
+  return data as Producto[];
+}
+
+// Crear producto (solo admin)
+export async function crearProducto(datos: Omit<Producto, "id" | "created_at" | "updated_at">) {
+  const { data, error } = await supabase
+    .from("productos")
+    .insert(datos)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Producto;
+}
+
+// Actualizar producto (solo admin)
+export async function actualizarProducto(id: number, datos: Partial<Producto>) {
+  const { data, error } = await supabase
+    .from("productos")
+    .update(datos)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Producto;
+}
+
+// Eliminar producto (solo admin) - soft delete
+export async function eliminarProducto(id: number) {
+  const { data, error } = await supabase
+    .from("productos")
+    .update({ activo: false })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Producto;
+}
+
+// ============== SERVICIOS (ADMIN) ==============
+
+// Obtener todos los servicios (incluyendo inactivos, para admin)
+export async function getAllServicios() {
+  const { data, error } = await supabase
+    .from("servicios")
+    .select("*")
+    .order("categoria")
+    .order("nombre");
+
+  if (error) throw error;
+  return data as Servicio[];
+}
+
+// Crear servicio (solo admin)
+export async function crearServicio(datos: Omit<Servicio, "id" | "created_at" | "updated_at">) {
+  const { data, error } = await supabase
+    .from("servicios")
+    .insert(datos)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Servicio;
+}
+
+// Actualizar servicio (solo admin)
+export async function actualizarServicio(id: number, datos: Partial<Servicio>) {
+  const { data, error } = await supabase
+    .from("servicios")
+    .update(datos)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Servicio;
+}
+
+// Eliminar servicio (solo admin) - soft delete
+export async function eliminarServicio(id: number) {
+  const { data, error } = await supabase
+    .from("servicios")
+    .update({ activo: false })
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Servicio;
+}
+
 // ============== EMPLEADOS ==============
 
 export interface Empleado {

@@ -17,7 +17,7 @@ import {
   Perfil,
   Agenda,
 } from "@/pages";
-import { Dashboard } from "@/pages/admin";
+import { Dashboard, Empleados, Servicios as AdminServicios, Productos as AdminProductos } from "@/pages/admin";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function App() {
@@ -52,6 +52,9 @@ function App() {
         >
           <Route index element={<Dashboard />} />
           <Route path="agenda" element={<Agenda />} />
+          <Route path="empleados" element={<Empleados />} />
+          <Route path="servicios" element={<AdminServicios />} />
+          <Route path="productos" element={<AdminProductos />} />
         </Route>
       </Routes>
     </CartProvider>

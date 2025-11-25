@@ -31,19 +31,16 @@ const menuItems = [
     title: "Servicios",
     href: "/admin/servicios",
     icon: Scissors,
-    disabled: true,
   },
   {
     title: "Productos",
     href: "/admin/productos",
     icon: Package,
-    disabled: true,
   },
   {
     title: "Empleados",
     href: "/admin/empleados",
     icon: Users,
-    disabled: true,
   },
   {
     title: "Pedidos",
