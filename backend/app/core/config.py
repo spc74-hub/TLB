@@ -31,6 +31,10 @@ class Settings(BaseSettings):
     stripe_secret_key: str = ""
     stripe_webhook_secret: str = ""
 
+    # Email (Resend)
+    resend_api_key: str = ""
+    email_from: str = "The Lobby Beauty <noreply@thelobbybeauty.com>"
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

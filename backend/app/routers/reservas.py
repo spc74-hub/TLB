@@ -3,8 +3,8 @@ Router de reservas para The Lobby Beauty.
 Gestiona los endpoints relacionados con las reservas de citas.
 """
 
-from fastapi import APIRouter, HTTPException, Query
-from datetime import date
+from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
+from datetime import date, time, datetime
 from typing import Optional
 
 from app.models.schemas import (
@@ -16,6 +16,10 @@ from app.models.schemas import (
     MensajeRespuesta,
 )
 from app.core.database import init_supabase
+from app.services.email import (
+    enviar_confirmacion_reserva,
+    enviar_cancelacion_reserva,
+)
 
 router = APIRouter(
     prefix="/reservas",
@@ -128,18 +132,19 @@ async def obtener_reserva(reserva_id: int):
 
 
 @router.post("/", response_model=Reserva, status_code=201)
-async def crear_reserva(reserva: ReservaCreate):
+async def crear_reserva(reserva: ReservaCreate, background_tasks: BackgroundTasks):
     """
     Crea una nueva reserva.
 
     Valida que el horario esté disponible antes de crear.
+    Envía email de confirmación si se proporciona email del cliente.
     """
     supabase = init_supabase()
 
-    # Verificar que el servicio existe
+    # Verificar que el servicio existe y obtener detalles
     servicio = (
         supabase.table("servicios")
-        .select("id")
+        .select("id, nombre, duracion, precio")
         .eq("id", reserva.servicio_id)
         .eq("activo", True)
         .single()
@@ -174,8 +179,22 @@ async def crear_reserva(reserva: ReservaCreate):
     datos["usuario_id"] = "user-placeholder"
 
     response = supabase.table("reservas").insert(datos).execute()
+    reserva_creada = response.data[0]
 
-    return response.data[0]
+    # Enviar email de confirmación en background
+    if reserva.cliente_email:
+        background_tasks.add_task(
+            enviar_confirmacion_reserva,
+            email_cliente=reserva.cliente_email,
+            nombre_cliente=reserva.cliente_nombre,
+            servicio_nombre=servicio.data["nombre"],
+            fecha=reserva.fecha,
+            hora=reserva.hora,
+            duracion=servicio.data["duracion"],
+            precio=float(servicio.data["precio"]),
+        )
+
+    return reserva_creada
 
 
 @router.put("/{reserva_id}", response_model=Reserva)
@@ -213,10 +232,23 @@ async def actualizar_reserva(reserva_id: int, reserva: ReservaUpdate):
 
 
 @router.post("/{reserva_id}/cancelar", response_model=MensajeRespuesta)
-async def cancelar_reserva(reserva_id: int):
-    """Cancela una reserva."""
+async def cancelar_reserva(reserva_id: int, background_tasks: BackgroundTasks):
+    """Cancela una reserva y envía email de confirmación."""
     supabase = init_supabase()
 
+    # Obtener datos de la reserva antes de cancelar
+    reserva_data = (
+        supabase.table("reservas")
+        .select("*, servicios(nombre)")
+        .eq("id", reserva_id)
+        .single()
+        .execute()
+    )
+
+    if not reserva_data.data:
+        raise HTTPException(status_code=404, detail="Reserva no encontrada")
+
+    # Cancelar la reserva
     response = (
         supabase.table("reservas")
         .update({"estado": "cancelada"})
@@ -224,7 +256,20 @@ async def cancelar_reserva(reserva_id: int):
         .execute()
     )
 
-    if not response.data:
-        raise HTTPException(status_code=404, detail="Reserva no encontrada")
+    # Enviar email de cancelación si hay email del cliente
+    reserva = reserva_data.data
+    if reserva.get("cliente_email"):
+        fecha = datetime.strptime(reserva["fecha"], "%Y-%m-%d").date()
+        hora = datetime.strptime(reserva["hora"], "%H:%M:%S").time()
+        servicio_nombre = reserva.get("servicios", {}).get("nombre", "Servicio")
+
+        background_tasks.add_task(
+            enviar_cancelacion_reserva,
+            email_cliente=reserva["cliente_email"],
+            nombre_cliente=reserva.get("cliente_nombre", "Cliente"),
+            servicio_nombre=servicio_nombre,
+            fecha=fecha,
+            hora=hora,
+        )
 
     return MensajeRespuesta(mensaje="Reserva cancelada correctamente")

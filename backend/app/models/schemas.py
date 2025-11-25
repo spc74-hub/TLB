@@ -157,7 +157,9 @@ class ReservaBase(BaseModel):
 
 class ReservaCreate(ReservaBase):
     """Esquema para crear una reserva."""
-    pass
+    cliente_nombre: str = Field(..., min_length=2, max_length=100)
+    cliente_email: Optional[str] = Field(None, max_length=255)
+    cliente_telefono: Optional[str] = Field(None, max_length=20)
 
 
 class ReservaUpdate(BaseModel):
