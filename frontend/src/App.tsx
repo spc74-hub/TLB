@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/layout";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { CartProvider } from "@/context/CartContext";
 import {
   Home,
@@ -14,13 +15,16 @@ import {
   Login,
   Registro,
   Perfil,
+  Agenda,
 } from "@/pages";
+import { Dashboard } from "@/pages/admin";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function App() {
   return (
     <CartProvider>
       <Routes>
+        {/* Rutas públicas con Layout principal */}
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
           <Route path="servicios" element={<Servicios />} />
@@ -35,6 +39,19 @@ function App() {
           <Route path="registro" element={<Registro />} />
           <Route path="perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
+        </Route>
+
+        {/* Rutas de administración */}
+        <Route
+          path="/admin"
+          element={
+            <ProtectedRoute roles={["admin", "profesional"]}>
+              <AdminLayout />
+            </ProtectedRoute>
+          }
+        >
+          <Route index element={<Dashboard />} />
+          <Route path="agenda" element={<Agenda />} />
         </Route>
       </Routes>
     </CartProvider>

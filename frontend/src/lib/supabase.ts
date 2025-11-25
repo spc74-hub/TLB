@@ -25,6 +25,7 @@ export interface Servicio {
   precio: number;
   precio_oferta: number | null;
   es_libre_toxicos: boolean;
+  es_interno: boolean;
   imagen_url: string | null;
   activo: boolean;
   destacado: boolean;
@@ -340,4 +341,434 @@ export async function actualizarPassword(newPassword: string) {
   });
 
   if (error) throw error;
+}
+
+// ============== EMPLEADOS ==============
+
+export interface Empleado {
+  id: number;
+  usuario_id: string | null;
+  nombre: string;
+  apellidos: string | null;
+  email: string | null;
+  telefono: string | null;
+  color: string;
+  activo: boolean;
+  created_at: string;
+  updated_at: string;
+}
+
+// Obtener todos los empleados activos
+export async function getEmpleados() {
+  const { data, error } = await supabase
+    .from("empleados")
+    .select("*")
+    .eq("activo", true)
+    .order("nombre");
+
+  if (error) throw error;
+  return data as Empleado[];
+}
+
+// Obtener empleado por ID
+export async function getEmpleadoById(id: number) {
+  const { data, error } = await supabase
+    .from("empleados")
+    .select("*")
+    .eq("id", id)
+    .single();
+
+  if (error) throw error;
+  return data as Empleado;
+}
+
+// Obtener empleado por usuario_id (para vista de profesional)
+export async function getEmpleadoByUsuarioId(usuarioId: string) {
+  const { data, error } = await supabase
+    .from("empleados")
+    .select("*")
+    .eq("usuario_id", usuarioId)
+    .single();
+
+  if (error) throw error;
+  return data as Empleado;
+}
+
+// Crear empleado (solo admin)
+export async function crearEmpleado(datos: Omit<Empleado, "id" | "created_at" | "updated_at">) {
+  const { data, error } = await supabase
+    .from("empleados")
+    .insert(datos)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Empleado;
+}
+
+// Actualizar empleado (solo admin)
+export async function actualizarEmpleado(id: number, datos: Partial<Empleado>) {
+  const { data, error } = await supabase
+    .from("empleados")
+    .update(datos)
+    .eq("id", id)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Empleado;
+}
+
+// ============== RESERVAS ==============
+
+export type EstadoReserva = "pendiente" | "confirmada" | "completada" | "cancelada";
+
+export interface Reserva {
+  id: number;
+  usuario_id: string | null;
+  servicio_id: number | null;
+  empleado_id: number | null;
+  fecha: string;
+  hora: string;
+  estado: EstadoReserva;
+  notas: string | null;
+  nombre_cliente: string | null;
+  email_cliente: string | null;
+  telefono_cliente: string | null;
+  precio_total: number | null;
+  created_at: string;
+  updated_at: string;
+  // Relaciones (cuando se hace join)
+  servicio?: Servicio;
+  empleado?: Empleado;
+}
+
+export interface CrearReservaData {
+  servicio_id: number;
+  empleado_id?: number; // Opcional para reservas de clientes, obligatorio para agenda interna
+  fecha: string; // formato YYYY-MM-DD
+  hora: string; // formato HH:MM
+  nombre_cliente: string;
+  email_cliente?: string;
+  telefono_cliente?: string;
+  notas?: string;
+  precio_total?: number;
+  usuario_id?: string;
+}
+
+export interface Horario {
+  id: number;
+  dia_semana: number; // 0=Domingo, 1=Lunes...
+  hora_inicio: string;
+  hora_fin: string;
+  activo: boolean;
+}
+
+export interface DiaBloqueado {
+  id: number;
+  fecha: string;
+  motivo: string | null;
+}
+
+// Obtener horarios de apertura
+export async function getHorarios() {
+  const { data, error } = await supabase
+    .from("horarios")
+    .select("*")
+    .eq("activo", true)
+    .order("dia_semana")
+    .order("hora_inicio");
+
+  if (error) throw error;
+  return data as Horario[];
+}
+
+// Obtener días bloqueados (festivos, vacaciones)
+export async function getDiasBloqueados(desde?: string, hasta?: string) {
+  let query = supabase.from("dias_bloqueados").select("*");
+
+  if (desde) {
+    query = query.gte("fecha", desde);
+  }
+  if (hasta) {
+    query = query.lte("fecha", hasta);
+  }
+
+  const { data, error } = await query.order("fecha");
+  if (error) throw error;
+  return data as DiaBloqueado[];
+}
+
+// Obtener reservas de un día específico
+export async function getReservasPorFecha(fecha: string) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .select("*")
+    .eq("fecha", fecha)
+    .in("estado", ["pendiente", "confirmada"]);
+
+  if (error) throw error;
+  return data as Reserva[];
+}
+
+// Crear una nueva reserva
+export async function crearReserva(datos: CrearReservaData) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .insert({
+      ...datos,
+      estado: "pendiente",
+    })
+    .select()
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("Este horario ya está reservado. Por favor, elige otro.");
+    }
+    throw error;
+  }
+  return data as Reserva;
+}
+
+// Obtener reservas del usuario actual
+export async function getMisReservas(userId: string) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .select(`
+      *,
+      servicio:servicios(*)
+    `)
+    .eq("usuario_id", userId)
+    .order("fecha", { ascending: false })
+    .order("hora", { ascending: false });
+
+  if (error) throw error;
+  return data as Reserva[];
+}
+
+// Cancelar una reserva
+export async function cancelarReserva(reservaId: number, userId: string) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .update({ estado: "cancelada" })
+    .eq("id", reservaId)
+    .eq("usuario_id", userId)
+    .select()
+    .single();
+
+  if (error) throw error;
+  return data as Reserva;
+}
+
+// Generar slots de horarios disponibles para un día
+export function generarHorariosDisponibles(
+  horarios: Horario[],
+  diaSemana: number,
+  reservasDelDia: Reserva[],
+  duracionServicio: number = 30
+): string[] {
+  // Encontrar el horario del día
+  const horarioDelDia = horarios.filter((h) => h.dia_semana === diaSemana);
+
+  if (horarioDelDia.length === 0) return [];
+
+  const slots: string[] = [];
+  const horasOcupadas = new Set(reservasDelDia.map((r) => r.hora));
+
+  for (const horario of horarioDelDia) {
+    const [inicioHora, inicioMin] = horario.hora_inicio.split(":").map(Number);
+    const [finHora, finMin] = horario.hora_fin.split(":").map(Number);
+
+    let horaActual = inicioHora * 60 + inicioMin;
+    const horaFin = finHora * 60 + finMin;
+
+    while (horaActual + duracionServicio <= horaFin) {
+      const horas = Math.floor(horaActual / 60);
+      const minutos = horaActual % 60;
+      const horaStr = `${horas.toString().padStart(2, "0")}:${minutos.toString().padStart(2, "0")}`;
+
+      if (!horasOcupadas.has(horaStr)) {
+        slots.push(horaStr);
+      }
+
+      horaActual += 30; // Incremento de 30 minutos
+    }
+  }
+
+  return slots.sort();
+}
+
+// ============== AGENDA INTERNA ==============
+
+// Obtener todas las citas de un rango de fechas (para admin)
+export async function getCitasRango(desde: string, hasta: string) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .select(`
+      *,
+      servicio:servicios(*),
+      empleado:empleados(*)
+    `)
+    .gte("fecha", desde)
+    .lte("fecha", hasta)
+    .in("estado", ["pendiente", "confirmada", "completada"])
+    .order("fecha")
+    .order("hora");
+
+  if (error) throw error;
+  return data as Reserva[];
+}
+
+// Obtener citas de un empleado específico
+export async function getCitasEmpleado(empleadoId: number, desde: string, hasta: string) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .select(`
+      *,
+      servicio:servicios(*),
+      empleado:empleados(*)
+    `)
+    .eq("empleado_id", empleadoId)
+    .gte("fecha", desde)
+    .lte("fecha", hasta)
+    .in("estado", ["pendiente", "confirmada", "completada"])
+    .order("fecha")
+    .order("hora");
+
+  if (error) throw error;
+  return data as Reserva[];
+}
+
+// Obtener citas de un día específico con empleado
+export async function getCitasDia(fecha: string, empleadoId?: number) {
+  let query = supabase
+    .from("reservas")
+    .select(`
+      *,
+      servicio:servicios(*),
+      empleado:empleados(*)
+    `)
+    .eq("fecha", fecha)
+    .in("estado", ["pendiente", "confirmada", "completada"]);
+
+  if (empleadoId) {
+    query = query.eq("empleado_id", empleadoId);
+  }
+
+  const { data, error } = await query.order("hora");
+
+  if (error) throw error;
+  return data as Reserva[];
+}
+
+// Datos para crear cita desde agenda (empleado obligatorio)
+export interface CrearCitaData extends Omit<CrearReservaData, "empleado_id"> {
+  empleado_id: number;
+}
+
+// Crear cita desde agenda (admin/profesional)
+export async function crearCita(datos: CrearCitaData) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .insert({
+      ...datos,
+      estado: "confirmada", // Las citas creadas desde agenda se confirman directamente
+    })
+    .select(`
+      *,
+      servicio:servicios(*),
+      empleado:empleados(*)
+    `)
+    .single();
+
+  if (error) {
+    if (error.code === "23505") {
+      throw new Error("Este empleado ya tiene una cita a esa hora.");
+    }
+    throw error;
+  }
+  return data as Reserva;
+}
+
+// Actualizar cita
+export async function actualizarCita(citaId: number, datos: Partial<Reserva>) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .update(datos)
+    .eq("id", citaId)
+    .select(`
+      *,
+      servicio:servicios(*),
+      empleado:empleados(*)
+    `)
+    .single();
+
+  if (error) throw error;
+  return data as Reserva;
+}
+
+// Eliminar cita (solo admin)
+export async function eliminarCita(citaId: number) {
+  const { error } = await supabase
+    .from("reservas")
+    .delete()
+    .eq("id", citaId);
+
+  if (error) throw error;
+}
+
+// Obtener servicios (incluyendo internos para agenda)
+export async function getServiciosParaAgenda(incluirInternos: boolean = true) {
+  let query = supabase
+    .from("servicios")
+    .select("*")
+    .eq("activo", true)
+    .order("categoria")
+    .order("nombre");
+
+  if (!incluirInternos) {
+    query = query.eq("es_interno", false);
+  }
+
+  const { data, error } = await query;
+  if (error) throw error;
+  return data as Servicio[];
+}
+
+// Generar slots disponibles para un empleado específico
+export function generarHorariosEmpleado(
+  horarios: Horario[],
+  diaSemana: number,
+  reservasEmpleado: Reserva[],
+  duracionServicio: number = 30
+): string[] {
+  const horarioDelDia = horarios.filter((h) => h.dia_semana === diaSemana);
+
+  if (horarioDelDia.length === 0) return [];
+
+  const slots: string[] = [];
+  const horasOcupadas = new Set(reservasEmpleado.map((r) => r.hora));
+
+  for (const horario of horarioDelDia) {
+    const [inicioHora, inicioMin] = horario.hora_inicio.split(":").map(Number);
+    const [finHora, finMin] = horario.hora_fin.split(":").map(Number);
+
+    let horaActual = inicioHora * 60 + inicioMin;
+    const horaFin = finHora * 60 + finMin;
+
+    while (horaActual + duracionServicio <= horaFin) {
+      const horas = Math.floor(horaActual / 60);
+      const minutos = horaActual % 60;
+      const horaStr = `${horas.toString().padStart(2, "0")}:${minutos.toString().padStart(2, "0")}`;
+
+      if (!horasOcupadas.has(horaStr)) {
+        slots.push(horaStr);
+      }
+
+      horaActual += 30;
+    }
+  }
+
+  return slots.sort();
 }

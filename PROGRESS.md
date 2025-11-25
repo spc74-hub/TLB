@@ -72,45 +72,57 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ---
 
-## Fase 3: Sistema de Reservas 🔲 PENDIENTE
+## Fase 3: Sistema de Agenda Interna ✅ COMPLETADO
 
-### 3.1 Backend de Reservas
-- [ ] API de disponibilidad horaria
-- [ ] Crear/modificar/cancelar reservas
-- [ ] Validación de conflictos horarios
+### 3.1 Backend de Agenda
+- [x] Tabla de empleados en BD
+- [x] Campo empleado_id en reservas
+- [x] Campo es_interno en servicios (público vs interno)
+- [x] Horarios 10:00-22:00 todos los días
+- [x] Funciones CRUD para empleados y citas
+- [x] RLS basada en roles (admin, profesional, cliente)
 
-### 3.2 Calendario
-- [ ] Integrar calendario real con disponibilidad
-- [ ] Bloqueo de fechas/horas ocupadas
-- [ ] Selección de profesional (opcional)
+### 3.2 Página de Agenda
+- [x] Vista semanal con calendario de horas
+- [x] Crear/editar/eliminar citas
+- [x] Filtro por empleado (admin)
+- [x] Modal de nueva cita con selección de empleado, servicio, fecha y hora
+- [x] Validación de disponibilidad por empleado
+- [x] Colores por empleado en calendario
+- [ ] Vista diaria (opcional)
+- [ ] Arrastrar y soltar citas (opcional)
 
-### 3.3 Confirmaciones
+### 3.3 Roles y Permisos
+- [x] Admin: ve todas las citas, puede crear/editar/eliminar
+- [x] Profesional: ve solo sus citas, puede editar las suyas
+- [x] ProtectedRoute con verificación de rol
+- [ ] Panel de gestión de empleados (crear/editar)
+
+### 3.4 Confirmaciones
 - [ ] Email de confirmación de cita
 - [ ] Recordatorio 24h antes
 - [ ] SMS de recordatorio (opcional)
 
 ---
 
-## Fase 4: Panel de Administración 🔲 PENDIENTE
+## Fase 4: Panel de Administración ⏳ EN PROGRESO
 
-### 4.1 Dashboard
-- [ ] Vista general de estadísticas
-- [ ] Reservas del día/semana
+### 4.1 Dashboard ✅ COMPLETADO
+- [x] Layout con sidebar colapsable
+- [x] Vista general de estadísticas (citas, empleados, servicios, productos)
+- [x] Citas del día/semana
+- [x] Acciones rápidas
 - [ ] Pedidos recientes
-- [ ] Ingresos
+- [ ] Gráfico de ingresos
 
 ### 4.2 Gestión de Contenido
-- [ ] CRUD de servicios
+- [ ] CRUD de servicios (con campo es_interno)
 - [ ] CRUD de productos
 - [ ] Gestión de categorías
 - [ ] Subida de imágenes
+- [ ] Gestión de empleados
 
-### 4.3 Gestión de Citas
-- [ ] Calendario de reservas
-- [ ] Confirmar/cancelar citas
-- [ ] Asignar profesional
-
-### 4.4 Gestión de Pedidos
+### 4.3 Gestión de Pedidos
 - [ ] Lista de pedidos
 - [ ] Actualizar estados
 - [ ] Gestión de envíos
@@ -198,6 +210,37 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Página de perfil con edición de datos
 - [x] Traducciones de errores de Supabase al español
 
+### Sistema de Reservas (2025-11-25)
+- [x] Funciones de reservas en supabase.ts
+- [x] Página Reservar conectada a Supabase
+- [x] Carga servicios y categorías desde BD
+- [x] Horarios dinámicos según configuración en BD
+- [x] Verificación de disponibilidad (reservas existentes)
+- [x] Bloqueo de días sin horario y días bloqueados
+- [x] Creación de reserva en base de datos
+- [x] Pre-rellenado de datos si usuario logueado
+- [x] Muestra número de reserva tras confirmar
+
+### Sistema de Agenda Interna (2025-11-25)
+- [x] Esquema SQL para empleados (database/agenda_schema.sql)
+- [x] Campo empleado_id en reservas
+- [x] Campo es_interno en servicios
+- [x] Horarios 10:00-22:00 todos los días
+- [x] Tipo Empleado y funciones CRUD en supabase.ts
+- [x] Funciones de agenda: getCitasRango, getCitasEmpleado, getCitasDia, crearCita, actualizarCita, eliminarCita
+- [x] Página Agenda.tsx con vista semanal
+- [x] Modal para crear/editar citas
+- [x] Filtro por empleado (admin)
+- [x] ProtectedRoute actualizado con verificación de roles
+- [x] Ruta /agenda protegida para admin y profesional
+
+### Panel de Administración (2025-11-25)
+- [x] AdminLayout con sidebar colapsable (desktop/mobile)
+- [x] Dashboard con estadísticas en tiempo real
+- [x] Acciones rápidas y próximas citas
+- [x] Rutas /admin y /admin/agenda protegidas
+- [x] Navegación entre secciones admin
+
 ---
 
 ## Notas y Decisiones
@@ -217,14 +260,27 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - Crudo: Fondos
 - Carbon: Textos
 
+### Rutas de Administración
+- `/admin` - Dashboard principal
+- `/admin/agenda` - Gestión de citas
+- `/admin/servicios` - (próximamente)
+- `/admin/productos` - (próximamente)
+- `/admin/empleados` - (próximamente)
+- `/admin/pedidos` - (próximamente)
+- `/admin/configuracion` - (próximamente)
+
 ---
 
 ## Próxima Sesión
 
-**Objetivo:** Implementar sistema de reservas funcional.
+**Tareas pendientes prioritarias:**
+1. CRUD de empleados desde panel admin
+2. CRUD de servicios con campo es_interno
+3. CRUD de productos
+4. Integración con pasarela de pago (Stripe)
+5. Email de confirmación de citas
 
-**Tareas:**
-1. Conectar formulario de reservas a Supabase
-2. Crear API de disponibilidad horaria
-3. Mostrar calendario con horas disponibles
-4. Email de confirmación de cita
+**Opcionales:**
+- Vista diaria en agenda
+- Arrastrar y soltar citas
+- Gráfico de ingresos en dashboard

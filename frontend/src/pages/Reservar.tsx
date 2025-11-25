@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import { useSearchParams, Link } from "react-router-dom";
 import { format, addDays, isBefore, startOfDay } from "date-fns";
 import { es } from "date-fns/locale";
@@ -12,6 +12,7 @@ import {
   User,
   Phone,
   Mail,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -26,44 +27,44 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { servicios, categorias } from "@/lib/mock-data";
-import type { Servicio, CategoriaServicio } from "@/types";
-
-// Horarios disponibles (mock)
-const horariosDisponibles = [
-  "10:00",
-  "10:30",
-  "11:00",
-  "11:30",
-  "12:00",
-  "12:30",
-  "13:00",
-  "16:00",
-  "16:30",
-  "17:00",
-  "17:30",
-  "18:00",
-  "18:30",
-  "19:00",
-  "19:30",
-];
+import {
+  getServicios,
+  getCategoriasServicios,
+  getHorarios,
+  getDiasBloqueados,
+  getReservasPorFecha,
+  crearReserva,
+  generarHorariosDisponibles,
+  type Servicio,
+  type CategoriaServicioInfo,
+  type Horario,
+  type DiaBloqueado,
+  type Reserva,
+} from "@/lib/supabase";
+import { useAuth } from "@/context/AuthContext";
 
 type PasoReserva = "servicio" | "fecha" | "datos" | "confirmacion";
 
 export function Reservar() {
   const [searchParams] = useSearchParams();
   const servicioIdParam = searchParams.get("servicio");
+  const { user, perfil } = useAuth();
+
+  // Estado de datos
+  const [servicios, setServicios] = useState<Servicio[]>([]);
+  const [categorias, setCategorias] = useState<CategoriaServicioInfo[]>([]);
+  const [horarios, setHorarios] = useState<Horario[]>([]);
+  const [diasBloqueados, setDiasBloqueados] = useState<DiaBloqueado[]>([]);
+  const [reservasDelDia, setReservasDelDia] = useState<Reserva[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [loadingHorarios, setLoadingHorarios] = useState(false);
+  const [submitting, setSubmitting] = useState(false);
+  const [error, setError] = useState<string | null>(null);
 
   // Estado del formulario
   const [pasoActual, setPasoActual] = useState<PasoReserva>("servicio");
-  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<
-    CategoriaServicio | ""
-  >("");
-  const [servicioSeleccionado, setServicioSeleccionado] = useState<Servicio | null>(
-    servicioIdParam
-      ? servicios.find((s) => s.id === parseInt(servicioIdParam)) || null
-      : null
-  );
+  const [categoriaSeleccionada, setCategoriaSeleccionada] = useState<string>("");
+  const [servicioSeleccionado, setServicioSeleccionado] = useState<Servicio | null>(null);
   const [fechaSeleccionada, setFechaSeleccionada] = useState<Date | undefined>();
   const [horaSeleccionada, setHoraSeleccionada] = useState<string>("");
   const [datosCliente, setDatosCliente] = useState({
@@ -73,6 +74,79 @@ export function Reservar() {
     notas: "",
   });
   const [reservaConfirmada, setReservaConfirmada] = useState(false);
+  const [reservaId, setReservaId] = useState<number | null>(null);
+
+  // Cargar datos iniciales
+  useEffect(() => {
+    async function cargarDatos() {
+      try {
+        setLoading(true);
+        const [serviciosData, categoriasData, horariosData, diasBloqueadosData] = await Promise.all([
+          getServicios(),
+          getCategoriasServicios(),
+          getHorarios(),
+          getDiasBloqueados(
+            format(new Date(), "yyyy-MM-dd"),
+            format(addDays(new Date(), 60), "yyyy-MM-dd")
+          ),
+        ]);
+
+        setServicios(serviciosData);
+        setCategorias(categoriasData);
+        setHorarios(horariosData);
+        setDiasBloqueados(diasBloqueadosData);
+
+        // Si hay servicio preseleccionado
+        if (servicioIdParam) {
+          const servicio = serviciosData.find((s) => s.id === parseInt(servicioIdParam));
+          if (servicio) {
+            setServicioSeleccionado(servicio);
+            setPasoActual("fecha");
+          }
+        }
+      } catch (err) {
+        console.error("Error cargando datos:", err);
+        setError("Error al cargar los datos. Inténtalo de nuevo.");
+      } finally {
+        setLoading(false);
+      }
+    }
+
+    cargarDatos();
+  }, [servicioIdParam]);
+
+  // Pre-rellenar datos del usuario si está logueado
+  useEffect(() => {
+    if (user && perfil) {
+      setDatosCliente((prev) => ({
+        ...prev,
+        nombre: `${perfil.nombre || ""} ${perfil.apellidos || ""}`.trim(),
+        email: user.email || "",
+        telefono: perfil.telefono || "",
+      }));
+    }
+  }, [user, perfil]);
+
+  // Cargar reservas cuando se selecciona una fecha
+  useEffect(() => {
+    async function cargarReservasDelDia() {
+      if (!fechaSeleccionada) return;
+
+      try {
+        setLoadingHorarios(true);
+        const fechaStr = format(fechaSeleccionada, "yyyy-MM-dd");
+        const reservas = await getReservasPorFecha(fechaStr);
+        setReservasDelDia(reservas);
+      } catch (err) {
+        console.error("Error cargando reservas:", err);
+      } finally {
+        setLoadingHorarios(false);
+      }
+    }
+
+    cargarReservasDelDia();
+    setHoraSeleccionada(""); // Reset hora al cambiar fecha
+  }, [fechaSeleccionada]);
 
   // Servicios filtrados por categoría
   const serviciosFiltrados = useMemo(() => {
@@ -80,14 +154,34 @@ export function Reservar() {
     return servicios.filter(
       (s) => s.categoria === categoriaSeleccionada && s.activo
     );
-  }, [categoriaSeleccionada]);
+  }, [categoriaSeleccionada, servicios]);
 
-  // Si viene un servicio preseleccionado, ir al paso de fecha
-  useState(() => {
-    if (servicioSeleccionado) {
-      setPasoActual("fecha");
+  // Horarios disponibles para el día seleccionado
+  const horariosDisponibles = useMemo(() => {
+    if (!fechaSeleccionada || horarios.length === 0) return [];
+
+    const diaSemana = fechaSeleccionada.getDay();
+    const duracion = servicioSeleccionado?.duracion_minutos || 30;
+
+    return generarHorariosDisponibles(horarios, diaSemana, reservasDelDia, duracion);
+  }, [fechaSeleccionada, horarios, reservasDelDia, servicioSeleccionado]);
+
+  // Set de fechas bloqueadas
+  const fechasBloqueadasSet = useMemo(() => {
+    return new Set(diasBloqueados.map((d) => d.fecha));
+  }, [diasBloqueados]);
+
+  // Días de la semana sin horario configurado
+  const diasSinHorario = useMemo(() => {
+    const diasConHorario = new Set(horarios.map((h) => h.dia_semana));
+    const diasSin: number[] = [];
+    for (let i = 0; i <= 6; i++) {
+      if (!diasConHorario.has(i)) {
+        diasSin.push(i);
+      }
     }
-  });
+    return diasSin;
+  }, [horarios]);
 
   const formatPrecio = (precio: number) => {
     return new Intl.NumberFormat("es-ES", {
@@ -118,26 +212,75 @@ export function Reservar() {
     }
   };
 
-  const handleConfirmarReserva = (e: React.FormEvent) => {
+  const handleConfirmarReserva = async (e: React.FormEvent) => {
     e.preventDefault();
-    // Aquí iría la llamada a la API
-    setReservaConfirmada(true);
-    setPasoActual("confirmacion");
+    if (!servicioSeleccionado || !fechaSeleccionada || !horaSeleccionada) return;
+
+    try {
+      setSubmitting(true);
+      setError(null);
+
+      const reserva = await crearReserva({
+        servicio_id: servicioSeleccionado.id,
+        fecha: format(fechaSeleccionada, "yyyy-MM-dd"),
+        hora: horaSeleccionada,
+        nombre_cliente: datosCliente.nombre,
+        email_cliente: datosCliente.email,
+        telefono_cliente: datosCliente.telefono,
+        notas: datosCliente.notas || undefined,
+        precio_total: servicioSeleccionado.precio_oferta || servicioSeleccionado.precio,
+        usuario_id: user?.id,
+      });
+
+      setReservaId(reserva.id);
+      setReservaConfirmada(true);
+      setPasoActual("confirmacion");
+    } catch (err) {
+      const message = err instanceof Error ? err.message : "Error al crear la reserva";
+      setError(message);
+    } finally {
+      setSubmitting(false);
+    }
   };
 
   const handleNuevaReserva = () => {
     setServicioSeleccionado(null);
     setFechaSeleccionada(undefined);
     setHoraSeleccionada("");
-    setDatosCliente({ nombre: "", email: "", telefono: "", notas: "" });
+    setDatosCliente({
+      nombre: perfil ? `${perfil.nombre || ""} ${perfil.apellidos || ""}`.trim() : "",
+      email: user?.email || "",
+      telefono: perfil?.telefono || "",
+      notas: "",
+    });
     setReservaConfirmada(false);
+    setReservaId(null);
+    setError(null);
     setPasoActual("servicio");
   };
 
-  // Deshabilitar fechas pasadas y domingos
+  // Deshabilitar fechas pasadas, días bloqueados y días sin horario
   const disabledDays = (date: Date) => {
-    return isBefore(date, startOfDay(new Date())) || date.getDay() === 0;
+    // Fecha pasada
+    if (isBefore(date, startOfDay(new Date()))) return true;
+
+    // Día de la semana sin horario
+    if (diasSinHorario.includes(date.getDay())) return true;
+
+    // Día bloqueado
+    const fechaStr = format(date, "yyyy-MM-dd");
+    if (fechasBloqueadasSet.has(fechaStr)) return true;
+
+    return false;
   };
+
+  if (loading) {
+    return (
+      <div className="min-h-screen bg-crudo-50 flex items-center justify-center">
+        <Loader2 className="h-8 w-8 animate-spin text-salvia-500" />
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-crudo-50">
@@ -204,6 +347,13 @@ export function Reservar() {
       {/* Contenido principal */}
       <section className="py-8 lg:py-12">
         <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+          {/* Error global */}
+          {error && (
+            <div className="mb-6 p-4 bg-terracota-50 border border-terracota-200 rounded-lg text-terracota-700">
+              {error}
+            </div>
+          )}
+
           {/* Paso 1: Selección de servicio */}
           {pasoActual === "servicio" && (
             <div>
@@ -211,9 +361,7 @@ export function Reservar() {
                 <Label className="text-base">Filtrar por categoría</Label>
                 <Select
                   value={categoriaSeleccionada}
-                  onValueChange={(value) =>
-                    setCategoriaSeleccionada(value as CategoriaServicio | "")
-                  }
+                  onValueChange={setCategoriaSeleccionada}
                 >
                   <SelectTrigger className="w-full sm:w-64 mt-2 bg-white border-crudo-300">
                     <SelectValue placeholder="Todas las categorías" />
@@ -257,14 +405,33 @@ export function Reservar() {
                           <Clock className="h-3.5 w-3.5" />
                           {formatDuracion(servicio.duracion_minutos)}
                         </span>
-                        <span className="font-semibold text-salvia-600">
-                          {formatPrecio(servicio.precio)}
-                        </span>
+                        <div className="text-right">
+                          {servicio.precio_oferta ? (
+                            <>
+                              <span className="text-carbon-400 line-through text-xs mr-2">
+                                {formatPrecio(servicio.precio)}
+                              </span>
+                              <span className="font-semibold text-terracota-600">
+                                {formatPrecio(servicio.precio_oferta)}
+                              </span>
+                            </>
+                          ) : (
+                            <span className="font-semibold text-salvia-600">
+                              {formatPrecio(servicio.precio)}
+                            </span>
+                          )}
+                        </div>
                       </div>
                     </CardContent>
                   </Card>
                 ))}
               </div>
+
+              {serviciosFiltrados.length === 0 && (
+                <div className="text-center py-12">
+                  <p className="text-carbon-500">No hay servicios disponibles en esta categoría.</p>
+                </div>
+              )}
             </div>
           )}
 
@@ -284,7 +451,7 @@ export function Reservar() {
                       </p>
                       <p className="text-sm text-carbon-600">
                         {formatDuracion(servicioSeleccionado.duracion_minutos)} ·{" "}
-                        {formatPrecio(servicioSeleccionado.precio)}
+                        {formatPrecio(servicioSeleccionado.precio_oferta || servicioSeleccionado.precio)}
                       </p>
                     </div>
                     <Button
@@ -337,21 +504,36 @@ export function Reservar() {
                             })}
                           </strong>
                         </p>
-                        <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                          {horariosDisponibles.map((hora) => (
-                            <button
-                              key={hora}
-                              onClick={() => handleSeleccionarHora(hora)}
-                              className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                                horaSeleccionada === hora
-                                  ? "bg-salvia-500 text-white border-salvia-500"
-                                  : "bg-white border-crudo-300 text-carbon-700 hover:border-salvia-400"
-                              }`}
-                            >
-                              {hora}
-                            </button>
-                          ))}
-                        </div>
+                        {loadingHorarios ? (
+                          <div className="flex items-center justify-center py-8">
+                            <Loader2 className="h-6 w-6 animate-spin text-salvia-500" />
+                          </div>
+                        ) : horariosDisponibles.length > 0 ? (
+                          <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                            {horariosDisponibles.map((hora) => (
+                              <button
+                                key={hora}
+                                onClick={() => handleSeleccionarHora(hora)}
+                                className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
+                                  horaSeleccionada === hora
+                                    ? "bg-salvia-500 text-white border-salvia-500"
+                                    : "bg-white border-crudo-300 text-carbon-700 hover:border-salvia-400"
+                                }`}
+                              >
+                                {hora}
+                              </button>
+                            ))}
+                          </div>
+                        ) : (
+                          <div className="text-center py-6">
+                            <p className="text-carbon-500">
+                              No hay horarios disponibles para este día.
+                            </p>
+                            <p className="text-sm text-carbon-400 mt-1">
+                              Prueba con otra fecha.
+                            </p>
+                          </div>
+                        )}
                       </CardContent>
                     </Card>
                   ) : (
@@ -513,7 +695,7 @@ export function Reservar() {
                       <div className="flex justify-between items-center">
                         <span className="text-carbon-600">Total a pagar</span>
                         <span className="text-2xl font-bold text-salvia-600">
-                          {formatPrecio(servicioSeleccionado.precio)}
+                          {formatPrecio(servicioSeleccionado.precio_oferta || servicioSeleccionado.precio)}
                         </span>
                       </div>
                       <p className="text-xs text-carbon-500 mt-1">
@@ -528,6 +710,7 @@ export function Reservar() {
                         variant="outline"
                         onClick={() => setPasoActual("fecha")}
                         className="border-crudo-300"
+                        disabled={submitting}
                       >
                         <ArrowLeft className="h-4 w-4 mr-2" />
                         Atrás
@@ -535,9 +718,19 @@ export function Reservar() {
                       <Button
                         type="submit"
                         className="bg-salvia-500 hover:bg-salvia-600"
+                        disabled={submitting}
                       >
-                        Confirmar reserva
-                        <CheckCircle2 className="h-4 w-4 ml-2" />
+                        {submitting ? (
+                          <>
+                            <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                            Confirmando...
+                          </>
+                        ) : (
+                          <>
+                            Confirmar reserva
+                            <CheckCircle2 className="h-4 w-4 ml-2" />
+                          </>
+                        )}
                       </Button>
                     </div>
                   </form>
@@ -557,6 +750,9 @@ export function Reservar() {
                 <h2 className="font-display text-2xl font-bold text-carbon-800 mb-4">
                   ¡Reserva confirmada!
                 </h2>
+                <p className="text-carbon-600 mb-2">
+                  Tu número de reserva es: <strong>#{reservaId}</strong>
+                </p>
                 <p className="text-carbon-600 mb-8 max-w-md mx-auto">
                   Hemos enviado un email de confirmación a{" "}
                   <strong>{datosCliente.email}</strong> con todos los detalles de
@@ -594,7 +790,7 @@ export function Reservar() {
                         <span className="text-carbon-500">Total</span>
                         <span className="font-bold text-salvia-600">
                           {servicioSeleccionado &&
-                            formatPrecio(servicioSeleccionado.precio)}
+                            formatPrecio(servicioSeleccionado.precio_oferta || servicioSeleccionado.precio)}
                         </span>
                       </div>
                     </div>
