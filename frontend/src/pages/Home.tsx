@@ -1,4 +1,5 @@
 import { Link } from "react-router-dom";
+import { useState, useEffect } from "react";
 import {
   Leaf,
   ShieldCheck,
@@ -11,6 +12,15 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+
+const heroImages = [
+  { src: "/images/TLB Cejas.jpg", alt: "Servicios de cejas" },
+  { src: "/images/TLB Manicura.jpg", alt: "Servicios de manicura" },
+  { src: "/images/TLB Pedicura.jpg", alt: "Servicios de pedicura" },
+  { src: "/images/TLB Toalla.jpg", alt: "Spa y bienestar" },
+  { src: "/images/TLB collage.jpg", alt: "The Lobby Beauty" },
+  { src: "/images/TLB Collage 2.jpg", alt: "Nuestros servicios" },
+];
 
 const categorias = [
   {
@@ -72,6 +82,15 @@ const beneficios = [
 ];
 
 export function Home() {
+  const [currentImage, setCurrentImage] = useState(0);
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrentImage((prev) => (prev + 1) % heroImages.length);
+    }, 4000);
+    return () => clearInterval(interval);
+  }, []);
+
   return (
     <div>
       {/* Hero Section */}
@@ -116,9 +135,33 @@ export function Home() {
             <div className="hidden lg:block">
               <div className="relative">
                 <div className="absolute inset-0 bg-salvia-200 rounded-3xl rotate-3"></div>
-                <div className="relative bg-crudo-200 rounded-3xl p-8 -rotate-3 shadow-xl">
-                  <div className="aspect-square bg-gradient-to-br from-salvia-100 to-terracota-100 rounded-2xl flex items-center justify-center">
-                    <Leaf className="h-32 w-32 text-salvia-500 opacity-50" />
+                <div className="relative bg-crudo-200 rounded-3xl p-4 -rotate-3 shadow-xl overflow-hidden">
+                  <div className="aspect-square rounded-2xl overflow-hidden relative">
+                    {heroImages.map((image, index) => (
+                      <img
+                        key={image.src}
+                        src={image.src}
+                        alt={image.alt}
+                        className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-1000 ${
+                          index === currentImage ? "opacity-100" : "opacity-0"
+                        }`}
+                      />
+                    ))}
+                  </div>
+                  {/* Indicadores */}
+                  <div className="absolute bottom-6 left-1/2 -translate-x-1/2 flex gap-2">
+                    {heroImages.map((_, index) => (
+                      <button
+                        key={index}
+                        onClick={() => setCurrentImage(index)}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          index === currentImage
+                            ? "bg-salvia-600 w-4"
+                            : "bg-crudo-400 hover:bg-salvia-400"
+                        }`}
+                        aria-label={`Ver imagen ${index + 1}`}
+                      />
+                    ))}
                   </div>
                 </div>
               </div>
