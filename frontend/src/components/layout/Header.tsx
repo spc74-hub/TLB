@@ -1,11 +1,14 @@
 import { Link } from "react-router-dom";
-import { Menu, X, Leaf } from "lucide-react";
+import { Menu, X, Leaf, ShoppingCart } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { useCart } from "@/context/CartContext";
 
 const navegacion = [
   { nombre: "Inicio", href: "/" },
   { nombre: "Servicios", href: "/servicios" },
+  { nombre: "Tienda", href: "/tienda" },
   { nombre: "Reservar", href: "/reservar" },
   { nombre: "Nosotros", href: "/nosotros" },
   { nombre: "Contacto", href: "/contacto" },
@@ -13,6 +16,7 @@ const navegacion = [
 
 export function Header() {
   const [menuAbierto, setMenuAbierto] = useState(false);
+  const { cantidadTotal } = useCart();
 
   return (
     <header className="bg-crudo-50 border-b border-crudo-300 sticky top-0 z-50">
@@ -37,23 +41,41 @@ export function Header() {
                 {item.nombre}
               </Link>
             ))}
-            <Button className="bg-salvia-500 hover:bg-salvia-600 text-crudo-50">
-              Reservar Cita
+            <Link to="/carrito" className="relative p-2 text-carbon-600 hover:text-salvia-600">
+              <ShoppingCart className="h-5 w-5" />
+              {cantidadTotal > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-terracota-500 text-white text-xs">
+                  {cantidadTotal}
+                </Badge>
+              )}
+            </Link>
+            <Button asChild className="bg-salvia-500 hover:bg-salvia-600 text-crudo-50">
+              <Link to="/reservar">Reservar Cita</Link>
             </Button>
           </div>
 
-          {/* Botón menú móvil */}
-          <button
-            type="button"
-            className="md:hidden p-2 text-carbon-600"
-            onClick={() => setMenuAbierto(!menuAbierto)}
-          >
-            {menuAbierto ? (
-              <X className="h-6 w-6" />
-            ) : (
-              <Menu className="h-6 w-6" />
-            )}
-          </button>
+          {/* Botones móvil */}
+          <div className="flex items-center gap-2 md:hidden">
+            <Link to="/carrito" className="relative p-2 text-carbon-600">
+              <ShoppingCart className="h-5 w-5" />
+              {cantidadTotal > 0 && (
+                <Badge className="absolute -top-1 -right-1 h-5 w-5 p-0 flex items-center justify-center bg-terracota-500 text-white text-xs">
+                  {cantidadTotal}
+                </Badge>
+              )}
+            </Link>
+            <button
+              type="button"
+              className="p-2 text-carbon-600"
+              onClick={() => setMenuAbierto(!menuAbierto)}
+            >
+              {menuAbierto ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
         </div>
 
         {/* Menú móvil */}
@@ -70,8 +92,10 @@ export function Header() {
                   {item.nombre}
                 </Link>
               ))}
-              <Button className="bg-salvia-500 hover:bg-salvia-600 text-crudo-50 w-full">
-                Reservar Cita
+              <Button asChild className="bg-salvia-500 hover:bg-salvia-600 text-crudo-50 w-full">
+                <Link to="/reservar" onClick={() => setMenuAbierto(false)}>
+                  Reservar Cita
+                </Link>
               </Button>
             </div>
           </div>

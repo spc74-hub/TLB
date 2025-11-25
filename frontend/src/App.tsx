@@ -1,5 +1,6 @@
 import { Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/layout";
+import { CartProvider } from "@/context/CartContext";
 import {
   Home,
   Servicios,
@@ -7,21 +8,29 @@ import {
   Nosotros,
   Contacto,
   Reservar,
+  Tienda,
+  ProductoDetalle,
+  Carrito,
 } from "@/pages";
 
 function App() {
   return (
-    <Routes>
-      <Route path="/" element={<Layout />}>
-        <Route index element={<Home />} />
-        <Route path="servicios" element={<Servicios />} />
-        <Route path="servicios/:id" element={<ServicioDetalle />} />
-        <Route path="reservar" element={<Reservar />} />
-        <Route path="nosotros" element={<Nosotros />} />
-        <Route path="contacto" element={<Contacto />} />
-        <Route path="*" element={<NotFound />} />
-      </Route>
-    </Routes>
+    <CartProvider>
+      <Routes>
+        <Route path="/" element={<Layout />}>
+          <Route index element={<Home />} />
+          <Route path="servicios" element={<Servicios />} />
+          <Route path="servicios/:id" element={<ServicioDetalle />} />
+          <Route path="tienda" element={<Tienda />} />
+          <Route path="tienda/:id" element={<ProductoDetalle />} />
+          <Route path="carrito" element={<Carrito />} />
+          <Route path="reservar" element={<Reservar />} />
+          <Route path="nosotros" element={<Nosotros />} />
+          <Route path="contacto" element={<Contacto />} />
+          <Route path="*" element={<NotFound />} />
+        </Route>
+      </Routes>
+    </CartProvider>
   );
 }
 

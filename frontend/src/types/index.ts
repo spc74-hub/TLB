@@ -162,3 +162,69 @@ export interface FiltrosReservas {
   fecha_hasta?: string;
   estado?: EstadoReserva;
 }
+
+// ============== PRODUCTOS (ECOMMERCE) ==============
+
+export type CategoriaProducto =
+  | "manicura"
+  | "pedicura"
+  | "facial"
+  | "corporal"
+  | "cabello"
+  | "accesorios"
+  | "kits";
+
+export interface Producto {
+  id: number;
+  nombre: string;
+  descripcion: string;
+  descripcion_corta: string;
+  categoria: CategoriaProducto;
+  precio: number;
+  precio_oferta?: number;
+  imagen_url: string;
+  imagenes_extra?: string[];
+  stock: number;
+  es_natural: boolean;
+  es_vegano: boolean;
+  es_cruelty_free: boolean;
+  ingredientes?: string[];
+  modo_uso?: string;
+  activo: boolean;
+  destacado: boolean;
+  created_at: string;
+}
+
+export interface CategoriaProductoInfo {
+  id: number;
+  nombre: string;
+  slug: CategoriaProducto;
+  descripcion: string;
+  icono: string;
+  imagen_url?: string;
+}
+
+// ============== CARRITO ==============
+
+export interface ItemCarrito {
+  producto: Producto;
+  cantidad: number;
+}
+
+export interface Carrito {
+  items: ItemCarrito[];
+  total: number;
+  cantidad_total: number;
+}
+
+// ============== FILTROS PRODUCTOS ==============
+
+export interface FiltrosProductos {
+  categoria?: CategoriaProducto;
+  solo_naturales?: boolean;
+  solo_veganos?: boolean;
+  precio_min?: number;
+  precio_max?: number;
+  solo_destacados?: boolean;
+  busqueda?: string;
+}

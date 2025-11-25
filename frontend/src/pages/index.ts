@@ -4,3 +4,6 @@ export { ServicioDetalle } from "./ServicioDetalle";
 export { Nosotros } from "./Nosotros";
 export { Contacto } from "./Contacto";
 export { Reservar } from "./Reservar";
+export { Tienda } from "./Tienda";
+export { ProductoDetalle } from "./ProductoDetalle";
+export { Carrito } from "./Carrito";
