@@ -36,3 +36,6 @@ coverage/
 
 # Supabase
 supabase/.temp/
+
+# Image backups
+frontend/public/images/backup/
