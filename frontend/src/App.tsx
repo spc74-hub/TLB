@@ -12,6 +12,7 @@ import {
   Tienda,
   ProductoDetalle,
   Carrito,
+  PagoExitoso,
   Login,
   Registro,
   Perfil,
@@ -32,6 +33,7 @@ function App() {
           <Route path="tienda" element={<Tienda />} />
           <Route path="tienda/:id" element={<ProductoDetalle />} />
           <Route path="carrito" element={<Carrito />} />
+          <Route path="pago-exitoso" element={<PagoExitoso />} />
           <Route path="reservar" element={<Reservar />} />
           <Route path="nosotros" element={<Nosotros />} />
           <Route path="contacto" element={<Contacto />} />

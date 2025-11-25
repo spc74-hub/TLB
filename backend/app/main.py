@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import get_settings
 from app.core.database import init_supabase
-from app.routers import servicios, reservas, productos
+from app.routers import servicios, reservas, productos, pagos
 
 
 @asynccontextmanager
@@ -69,6 +69,7 @@ app.add_middleware(
 app.include_router(servicios.router, prefix="/api/v1")
 app.include_router(reservas.router, prefix="/api/v1")
 app.include_router(productos.router, prefix="/api/v1")
+app.include_router(pagos.router, prefix="/api/v1")
 
 
 @app.get("/")

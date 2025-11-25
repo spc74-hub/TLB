@@ -7,6 +7,7 @@ export { Reservar } from "./Reservar";
 export { Tienda } from "./Tienda";
 export { ProductoDetalle } from "./ProductoDetalle";
 export { Carrito } from "./Carrito";
+export { PagoExitoso } from "./PagoExitoso";
 export { Login } from "./Login";
 export { Registro } from "./Registro";
 export { Perfil } from "./Perfil";
