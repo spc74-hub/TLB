@@ -996,3 +996,66 @@ export async function actualizarEstadoPedido(pedidoId: number, estado: EstadoPed
   if (error) throw error;
   return data as Pedido;
 }
+
+// ============== STORAGE (IMÁGENES) ==============
+
+const BUCKET_NAME = "imagenes";
+
+// Subir imagen de producto
+export async function subirImagenProducto(file: File, productoId: number): Promise<string> {
+  const extension = file.name.split(".").pop() || "jpg";
+  const fileName = `productos/${productoId}_${Date.now()}.${extension}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+
+  if (error) throw error;
+
+  const { data: urlData } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
+}
+
+// Subir imagen de servicio
+export async function subirImagenServicio(file: File, servicioId: number): Promise<string> {
+  const extension = file.name.split(".").pop() || "jpg";
+  const fileName = `servicios/${servicioId}_${Date.now()}.${extension}`;
+
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .upload(fileName, file, {
+      cacheControl: "3600",
+      upsert: true,
+    });
+
+  if (error) throw error;
+
+  const { data: urlData } = supabase.storage
+    .from(BUCKET_NAME)
+    .getPublicUrl(fileName);
+
+  return urlData.publicUrl;
+}
+
+// Eliminar imagen del storage
+export async function eliminarImagen(imagenUrl: string): Promise<void> {
+  // Extraer el path del archivo de la URL
+  const urlParts = imagenUrl.split(`/storage/v1/object/public/${BUCKET_NAME}/`);
+  if (urlParts.length < 2) return;
+
+  const filePath = urlParts[1];
+
+  const { error } = await supabase.storage
+    .from(BUCKET_NAME)
+    .remove([filePath]);
+
+  if (error) {
+    console.error("Error eliminando imagen:", error);
+  }
+}

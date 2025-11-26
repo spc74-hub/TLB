@@ -130,9 +130,17 @@ export function ServicioDetalle() {
             {/* Imagen / Visual */}
             <div>
               <div className="aspect-square bg-gradient-to-br from-crudo-100 to-salvia-50 rounded-2xl overflow-hidden relative">
-                <div className="absolute inset-0 flex items-center justify-center">
-                  <Leaf className="h-32 w-32 text-salvia-300" />
-                </div>
+                {servicio.imagen_url ? (
+                  <img
+                    src={servicio.imagen_url}
+                    alt={servicio.nombre}
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <div className="absolute inset-0 flex items-center justify-center">
+                    <Leaf className="h-32 w-32 text-salvia-300" />
+                  </div>
+                )}
 
                 {/* Badges */}
                 <div className="absolute top-4 left-4 flex flex-col gap-2">

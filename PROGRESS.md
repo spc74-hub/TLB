@@ -1,6 +1,6 @@
 # The Lobby Beauty - Progreso del Proyecto
 
-> Última actualización: 2025-11-25
+> Última actualización: 2025-11-26
 
 ## Resumen del Proyecto
 
@@ -126,8 +126,8 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] CRUD de servicios (con campo es_interno) `/admin/servicios`
 - [x] CRUD de productos `/admin/productos`
 - [x] Gestión de empleados `/admin/empleados`
+- [x] Subida de imágenes (productos/servicios) ✅
 - [ ] Gestión de categorías
-- [ ] Subida de imágenes
 
 ### 4.3 Gestión de Pedidos
 - [ ] Lista de pedidos `/admin/pedidos`
@@ -289,6 +289,19 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
   - Modal de detalle con productos y dirección
 - [x] SQL para políticas RLS de pedidos (database/add_pedidos_rls.sql)
 
+### Sistema de Imágenes (2025-11-26)
+- [x] Configuración de Supabase Storage (database/setup_storage.sql)
+- [x] Bucket 'imagenes' con políticas RLS
+- [x] Funciones subirImagenProducto y subirImagenServicio en supabase.ts
+- [x] UI de subida de imágenes en admin/Productos.tsx
+- [x] UI de subida de imágenes en admin/Servicios.tsx
+- [x] Visualización de imágenes en páginas públicas:
+  - Tienda.tsx (listado de productos)
+  - ProductoDetalle.tsx (detalle de producto)
+  - Servicios.tsx (via ServiceCard component)
+  - ServicioDetalle.tsx (detalle de servicio)
+  - ServiceCard.tsx (variante featured)
+
 ---
 
 ## Notas y Decisiones
@@ -328,10 +341,10 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 4. [x] Historial de pedidos del usuario
 5. [x] Lista de pedidos en `/admin/pedidos`
 
-### PASO 2: Mejoras Admin Panel (AHORA)
-6. [ ] Gráfico de ingresos en dashboard
-7. [ ] Pedidos recientes en dashboard
-8. [ ] Subida de imágenes (productos/servicios)
+### PASO 2: Mejoras Admin Panel ✅ COMPLETADO
+6. [x] Subida de imágenes (productos/servicios)
+7. [ ] Gráfico de ingresos en dashboard (opcional)
+8. [ ] Pedidos recientes en dashboard (opcional)
 
 ### PASO 3: UX/Cuenta de Usuario
 9. [ ] Historial de citas del usuario

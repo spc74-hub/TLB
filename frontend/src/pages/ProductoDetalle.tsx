@@ -178,9 +178,17 @@ export function ProductoDetalle() {
           {/* Imagen */}
           <div className="space-y-4">
             <div className="aspect-square bg-white rounded-2xl border border-crudo-200 overflow-hidden relative">
-              <div className="absolute inset-0 flex items-center justify-center text-crudo-200">
-                <Leaf className="h-32 w-32" />
-              </div>
+              {producto.imagen_url ? (
+                <img
+                  src={producto.imagen_url}
+                  alt={producto.nombre}
+                  className="w-full h-full object-cover"
+                />
+              ) : (
+                <div className="absolute inset-0 flex items-center justify-center text-crudo-200">
+                  <Leaf className="h-32 w-32" />
+                </div>
+              )}
               {/* Badges */}
               <div className="absolute top-4 left-4 flex flex-col gap-2">
                 {producto.precio_oferta && (
@@ -359,10 +367,18 @@ export function ProductoDetalle() {
               {productosRelacionados.map((prod) => (
                 <Link key={prod.id} to={`/tienda/${prod.id}`}>
                   <Card className="group bg-white border-crudo-200 hover:shadow-lg transition-all overflow-hidden h-full">
-                    <div className="aspect-square bg-crudo-100 relative">
-                      <div className="absolute inset-0 flex items-center justify-center text-crudo-300">
-                        <Leaf className="h-12 w-12" />
-                      </div>
+                    <div className="aspect-square bg-crudo-100 relative overflow-hidden">
+                      {prod.imagen_url ? (
+                        <img
+                          src={prod.imagen_url}
+                          alt={prod.nombre}
+                          className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        />
+                      ) : (
+                        <div className="absolute inset-0 flex items-center justify-center text-crudo-300">
+                          <Leaf className="h-12 w-12" />
+                        </div>
+                      )}
                     </div>
                     <CardContent className="p-4">
                       <h3 className="font-display font-semibold text-carbon-800 group-hover:text-salvia-600 transition-colors line-clamp-2 mb-2">

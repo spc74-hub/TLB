@@ -307,9 +307,17 @@ export function Tienda() {
               >
                 <Link to={`/tienda/${producto.id}`}>
                   <div className="aspect-square bg-crudo-100 relative overflow-hidden">
-                    <div className="absolute inset-0 flex items-center justify-center text-crudo-300">
-                      <Leaf className="h-16 w-16" />
-                    </div>
+                    {producto.imagen_url ? (
+                      <img
+                        src={producto.imagen_url}
+                        alt={producto.nombre}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                      />
+                    ) : (
+                      <div className="absolute inset-0 flex items-center justify-center text-crudo-300">
+                        <Leaf className="h-16 w-16" />
+                      </div>
+                    )}
                     {/* Badges */}
                     <div className="absolute top-2 left-2 flex flex-col gap-1">
                       {producto.precio_oferta && (

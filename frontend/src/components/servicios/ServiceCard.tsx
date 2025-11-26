@@ -62,9 +62,17 @@ export function ServiceCard({ servicio, variante = "default" }: ServiceCardProps
     return (
       <Card className="h-full overflow-hidden bg-white border-crudo-200 hover:shadow-lg transition-shadow group">
         <div className="aspect-[4/3] bg-gradient-to-br from-crudo-100 to-salvia-50 relative overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <Leaf className="h-16 w-16 text-salvia-300 group-hover:scale-110 transition-transform" />
-          </div>
+          {servicio.imagen_url ? (
+            <img
+              src={servicio.imagen_url}
+              alt={servicio.nombre}
+              className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Leaf className="h-16 w-16 text-salvia-300 group-hover:scale-110 transition-transform" />
+            </div>
+          )}
           {servicio.es_libre_toxicos && (
             <Badge className="absolute top-3 left-3 bg-salvia-500 hover:bg-salvia-500 text-white">
               <Leaf className="h-3 w-3 mr-1" />

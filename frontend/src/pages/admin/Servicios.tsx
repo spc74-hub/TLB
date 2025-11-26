@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   Pencil,
   Trash2,
@@ -9,6 +9,9 @@ import {
   EyeOff,
   Clock,
   Euro,
+  Upload,
+  X,
+  ImageIcon,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -40,6 +43,7 @@ import {
   getAllServicios,
   crearServicio,
   actualizarServicio,
+  subirImagenServicio,
   type Servicio,
   type CategoriaServicio,
 } from "@/lib/supabase";
@@ -77,6 +81,12 @@ export function Servicios() {
     destacado: false,
   });
 
+  // Estado para imagen
+  const [imagenFile, setImagenFile] = useState<File | null>(null);
+  const [imagenPreview, setImagenPreview] = useState<string | null>(null);
+  const [subiendoImagen, setSubiendoImagen] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
+
   useEffect(() => {
     cargarServicios();
   }, []);
@@ -107,6 +117,8 @@ export function Servicios() {
       activo: true,
       destacado: false,
     });
+    setImagenFile(null);
+    setImagenPreview(null);
     setModalAbierto(true);
   };
 
@@ -124,6 +136,8 @@ export function Servicios() {
       activo: servicio.activo,
       destacado: servicio.destacado,
     });
+    setImagenFile(null);
+    setImagenPreview(servicio.imagen_url || null);
     setModalAbierto(true);
   };
 
@@ -142,6 +156,9 @@ export function Servicios() {
     try {
       setGuardando(true);
 
+      // Mantener imagen existente si no se sube una nueva
+      let imagenUrl = servicioEditando?.imagen_url || null;
+
       const datos = {
         nombre: formData.nombre.trim(),
         descripcion: formData.descripcion.trim() || null,
@@ -153,13 +170,31 @@ export function Servicios() {
         es_interno: formData.es_interno,
         activo: formData.activo,
         destacado: formData.destacado,
-        imagen_url: null,
+        imagen_url: imagenUrl,
       };
+
+      let servicioId: number;
 
       if (servicioEditando) {
         await actualizarServicio(servicioEditando.id, datos);
+        servicioId = servicioEditando.id;
       } else {
-        await crearServicio(datos);
+        const nuevoServicio = await crearServicio(datos);
+        servicioId = nuevoServicio.id;
+      }
+
+      // Subir imagen si hay una nueva seleccionada
+      if (imagenFile) {
+        setSubiendoImagen(true);
+        try {
+          const nuevaImagenUrl = await subirImagenServicio(imagenFile, servicioId);
+          await actualizarServicio(servicioId, { imagen_url: nuevaImagenUrl });
+        } catch (imgError) {
+          console.error("Error subiendo imagen:", imgError);
+          alert("Servicio guardado, pero hubo un error al subir la imagen");
+        } finally {
+          setSubiendoImagen(false);
+        }
       }
 
       setModalAbierto(false);
@@ -169,6 +204,33 @@ export function Servicios() {
       alert("Error al guardar el servicio");
     } finally {
       setGuardando(false);
+    }
+  };
+
+  // Handler para selección de imagen
+  const handleImagenChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      // Validar tipo
+      if (!file.type.startsWith("image/")) {
+        alert("Solo se permiten archivos de imagen");
+        return;
+      }
+      // Validar tamaño (5MB máx)
+      if (file.size > 5 * 1024 * 1024) {
+        alert("La imagen no puede superar los 5MB");
+        return;
+      }
+      setImagenFile(file);
+      setImagenPreview(URL.createObjectURL(file));
+    }
+  };
+
+  const quitarImagen = () => {
+    setImagenFile(null);
+    setImagenPreview(null);
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
     }
   };
 
@@ -435,6 +497,66 @@ export function Servicios() {
               />
             </div>
 
+            {/* Sección de imagen */}
+            <div className="grid gap-2">
+              <Label>Imagen del servicio</Label>
+              <div className="border-2 border-dashed border-crudo-300 rounded-lg p-4">
+                {imagenPreview ? (
+                  <div className="relative">
+                    <img
+                      src={imagenPreview}
+                      alt="Vista previa"
+                      className="w-full h-40 object-cover rounded-lg"
+                    />
+                    <button
+                      type="button"
+                      onClick={quitarImagen}
+                      className="absolute top-2 right-2 p-1 bg-red-500 text-white rounded-full hover:bg-red-600"
+                    >
+                      <X className="h-4 w-4" />
+                    </button>
+                    {imagenFile && (
+                      <p className="text-xs text-carbon-500 mt-2 text-center">
+                        Nueva imagen: {imagenFile.name}
+                      </p>
+                    )}
+                  </div>
+                ) : (
+                  <div
+                    className="flex flex-col items-center justify-center py-4 cursor-pointer hover:bg-crudo-50 rounded-lg transition-colors"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <ImageIcon className="h-10 w-10 text-carbon-300 mb-2" />
+                    <p className="text-sm text-carbon-600 mb-1">
+                      Haz clic para subir una imagen
+                    </p>
+                    <p className="text-xs text-carbon-400">
+                      JPG, PNG, WebP o GIF (máx. 5MB)
+                    </p>
+                  </div>
+                )}
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp,image/gif"
+                  onChange={handleImagenChange}
+                  className="hidden"
+                />
+                {!imagenPreview && (
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    className="w-full mt-2"
+                    onClick={() => fileInputRef.current?.click()}
+                  >
+                    <Upload className="h-4 w-4 mr-2" />
+                    Seleccionar imagen
+                  </Button>
+                )}
+              </div>
+            </div>
+
             <div className="grid grid-cols-2 gap-4">
               <div className="grid gap-2">
                 <Label htmlFor="categoria">Categoría</Label>
@@ -587,11 +709,14 @@ export function Servicios() {
             </Button>
             <Button
               onClick={guardarServicio}
-              disabled={guardando}
+              disabled={guardando || subiendoImagen}
               className="bg-salvia-500 hover:bg-salvia-600"
             >
-              {guardando ? (
-                <Loader2 className="h-4 w-4 animate-spin" />
+              {guardando || subiendoImagen ? (
+                <>
+                  <Loader2 className="h-4 w-4 animate-spin mr-2" />
+                  {subiendoImagen ? "Subiendo imagen..." : "Guardando..."}
+                </>
               ) : servicioEditando ? (
                 "Guardar cambios"
               ) : (
