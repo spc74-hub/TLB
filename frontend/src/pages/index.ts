@@ -13,3 +13,4 @@ export { Login } from "./Login";
 export { Registro } from "./Registro";
 export { Perfil } from "./Perfil";
 export { Agenda } from "./Agenda";
+export { Favoritos } from "./Favoritos";

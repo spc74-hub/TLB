@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { Layout } from "@/components/layout";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { CartProvider } from "@/context/CartContext";
+import { WishlistProvider } from "@/context/WishlistContext";
 import {
   Home,
   Servicios,
@@ -18,6 +19,7 @@ import {
   Registro,
   Perfil,
   Agenda,
+  Favoritos,
 } from "@/pages";
 import { Dashboard, Empleados, Servicios as AdminServicios, Productos as AdminProductos, Pedidos as AdminPedidos } from "@/pages/admin";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -25,7 +27,8 @@ import { ProtectedRoute } from "@/components/ProtectedRoute";
 function App() {
   return (
     <CartProvider>
-      <Routes>
+      <WishlistProvider>
+        <Routes>
         {/* Rutas públicas con Layout principal */}
         <Route path="/" element={<Layout />}>
           <Route index element={<Home />} />
@@ -34,6 +37,7 @@ function App() {
           <Route path="tienda" element={<Tienda />} />
           <Route path="tienda/:id" element={<ProductoDetalle />} />
           <Route path="carrito" element={<Carrito />} />
+          <Route path="favoritos" element={<Favoritos />} />
           <Route path="checkout" element={<Checkout />} />
           <Route path="pago-exitoso" element={<PagoExitoso />} />
           <Route path="reservar" element={<Reservar />} />
@@ -61,7 +65,8 @@ function App() {
           <Route path="productos" element={<AdminProductos />} />
           <Route path="pedidos" element={<AdminPedidos />} />
         </Route>
-      </Routes>
+        </Routes>
+      </WishlistProvider>
     </CartProvider>
   );
 }

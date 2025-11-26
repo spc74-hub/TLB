@@ -9,6 +9,7 @@ import {
   type Servicio,
   type CategoriaServicio,
 } from "@/lib/supabase";
+import { SEO } from "@/components/SEO";
 
 const categoriaLabels: Record<CategoriaServicio, string> = {
   manicura: "Manicura",
@@ -144,6 +145,12 @@ export function Servicios() {
 
   return (
     <div className="min-h-screen bg-crudo-50">
+      <SEO
+        title="Servicios"
+        url="/servicios"
+        description="Descubre nuestros servicios de belleza: manicura, pedicura, depilacion, cejas y pestanas. Tratamientos naturales y profesionales."
+        keywords="manicura, pedicura, depilacion, cejas, pestanas, servicios de belleza, tratamientos naturales"
+      />
       {/* Header de la página */}
       <section className="bg-gradient-to-br from-crudo-100 to-salvia-50 py-12 lg:py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

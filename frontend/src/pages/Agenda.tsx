@@ -15,7 +15,11 @@ import {
   Plus,
   Loader2,
   GripVertical,
+  Calendar,
+  CalendarDays,
+  Download,
 } from "lucide-react";
+import * as XLSX from "xlsx";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -65,6 +69,7 @@ export function Agenda() {
   const [loading, setLoading] = useState(true);
   const [empleadoFiltro, setEmpleadoFiltro] = useState<string>("todos");
   const [estadoFiltro, setEstadoFiltro] = useState<string>("activas");
+  const [vistaActual, setVistaActual] = useState<"semanal" | "diaria">("semanal");
 
   // Drag and drop
   const [citaArrastrando, setCitaArrastrando] = useState<Reserva | null>(null);
@@ -99,12 +104,12 @@ export function Agenda() {
     cargarDatos();
   }, []);
 
-  // Cargar citas cuando cambia la fecha o filtros
+  // Cargar citas cuando cambia la fecha, filtros o vista
   useEffect(() => {
     if (empleados.length > 0) {
       cargarCitas();
     }
-  }, [fechaActual, empleadoFiltro, estadoFiltro, empleados]);
+  }, [fechaActual, empleadoFiltro, estadoFiltro, empleados, vistaActual]);
 
   const cargarDatos = async () => {
     try {
@@ -126,10 +131,20 @@ export function Agenda() {
 
   const cargarCitas = async () => {
     try {
-      const inicioSemana = startOfWeek(fechaActual, { weekStartsOn: 1 });
-      const finSemana = addDays(inicioSemana, 6);
-      const desde = format(inicioSemana, "yyyy-MM-dd");
-      const hasta = format(finSemana, "yyyy-MM-dd");
+      let desde: string;
+      let hasta: string;
+
+      if (vistaActual === "diaria") {
+        // Vista diaria: solo el día actual
+        desde = format(fechaActual, "yyyy-MM-dd");
+        hasta = desde;
+      } else {
+        // Vista semanal: toda la semana
+        const inicioSemana = startOfWeek(fechaActual, { weekStartsOn: 1 });
+        const finSemana = addDays(inicioSemana, 6);
+        desde = format(inicioSemana, "yyyy-MM-dd");
+        hasta = format(finSemana, "yyyy-MM-dd");
+      }
 
       let citasData: Reserva[];
       if (empleadoFiltro === "sin_asignar") {
@@ -159,8 +174,12 @@ export function Agenda() {
   };
 
   // Navegación de fechas
-  const navegarSemana = (direccion: number) => {
-    setFechaActual((prev) => addDays(prev, direccion * 7));
+  const navegarFecha = (direccion: number) => {
+    if (vistaActual === "diaria") {
+      setFechaActual((prev) => addDays(prev, direccion));
+    } else {
+      setFechaActual((prev) => addDays(prev, direccion * 7));
+    }
   };
 
   const irAHoy = () => {
@@ -344,6 +363,79 @@ export function Agenda() {
     }
   };
 
+  // Exportar citas a Excel
+  const exportarExcel = () => {
+    const datosExportar = citas.map((cita) => ({
+      Fecha: cita.fecha,
+      Hora: cita.hora.substring(0, 5),
+      Cliente: cita.nombre_cliente,
+      Teléfono: cita.telefono_cliente || "",
+      Servicio: cita.servicio?.nombre || "",
+      Empleado: cita.empleado
+        ? `${cita.empleado.nombre} ${cita.empleado.apellidos}`
+        : "Sin asignar",
+      Estado: cita.estado,
+      Precio: cita.precio_total ? `${cita.precio_total}€` : "",
+      Notas: cita.notas || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(datosExportar);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Citas");
+
+    // Ajustar ancho de columnas
+    const colWidths = [
+      { wch: 12 }, // Fecha
+      { wch: 8 }, // Hora
+      { wch: 20 }, // Cliente
+      { wch: 15 }, // Teléfono
+      { wch: 25 }, // Servicio
+      { wch: 20 }, // Empleado
+      { wch: 12 }, // Estado
+      { wch: 10 }, // Precio
+      { wch: 30 }, // Notas
+    ];
+    ws["!cols"] = colWidths;
+
+    const nombreArchivo =
+      vistaActual === "diaria"
+        ? `agenda_${format(fechaActual, "yyyy-MM-dd")}.xlsx`
+        : `agenda_semana_${format(startOfWeek(fechaActual, { weekStartsOn: 1 }), "yyyy-MM-dd")}.xlsx`;
+
+    XLSX.writeFile(wb, nombreArchivo);
+  };
+
+  // Exportar citas a CSV
+  const exportarCSV = () => {
+    const datosExportar = citas.map((cita) => ({
+      Fecha: cita.fecha,
+      Hora: cita.hora.substring(0, 5),
+      Cliente: cita.nombre_cliente,
+      Teléfono: cita.telefono_cliente || "",
+      Servicio: cita.servicio?.nombre || "",
+      Empleado: cita.empleado
+        ? `${cita.empleado.nombre} ${cita.empleado.apellidos}`
+        : "Sin asignar",
+      Estado: cita.estado,
+      Precio: cita.precio_total ? `${cita.precio_total}€` : "",
+      Notas: cita.notas || "",
+    }));
+
+    const ws = XLSX.utils.json_to_sheet(datosExportar);
+    const csv = XLSX.utils.sheet_to_csv(ws);
+
+    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download =
+      vistaActual === "diaria"
+        ? `agenda_${format(fechaActual, "yyyy-MM-dd")}.csv`
+        : `agenda_semana_${format(startOfWeek(fechaActual, { weekStartsOn: 1 }), "yyyy-MM-dd")}.csv`;
+    link.click();
+    URL.revokeObjectURL(url);
+  };
+
   // Horarios disponibles para el empleado seleccionado
   const horariosDisponibles = useMemo(() => {
     if (!formCita.fecha) return horasDelDia;
@@ -402,7 +494,9 @@ export function Agenda() {
             Agenda
           </h1>
           <p className="text-carbon-600">
-            {format(fechaActual, "MMMM yyyy", { locale: es })}
+            {vistaActual === "diaria"
+              ? format(fechaActual, "EEEE, d 'de' MMMM yyyy", { locale: es })
+              : format(fechaActual, "MMMM yyyy", { locale: es })}
           </p>
         </div>
 
@@ -467,12 +561,34 @@ export function Agenda() {
             </Select>
           )}
 
+          {/* Toggle Vista */}
+          <div className="flex items-center border rounded-lg overflow-hidden">
+            <Button
+              variant={vistaActual === "semanal" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setVistaActual("semanal")}
+              className={`rounded-none ${vistaActual === "semanal" ? "bg-salvia-500 hover:bg-salvia-600" : ""}`}
+            >
+              <Calendar className="h-4 w-4 mr-1" />
+              Semana
+            </Button>
+            <Button
+              variant={vistaActual === "diaria" ? "default" : "ghost"}
+              size="sm"
+              onClick={() => setVistaActual("diaria")}
+              className={`rounded-none ${vistaActual === "diaria" ? "bg-salvia-500 hover:bg-salvia-600" : ""}`}
+            >
+              <CalendarDays className="h-4 w-4 mr-1" />
+              Día
+            </Button>
+          </div>
+
           {/* Navegación */}
           <div className="flex items-center gap-2">
             <Button
               variant="outline"
               size="icon"
-              onClick={() => navegarSemana(-1)}
+              onClick={() => navegarFecha(-1)}
             >
               <ChevronLeft className="h-4 w-4" />
             </Button>
@@ -482,11 +598,25 @@ export function Agenda() {
             <Button
               variant="outline"
               size="icon"
-              onClick={() => navegarSemana(1)}
+              onClick={() => navegarFecha(1)}
             >
               <ChevronRight className="h-4 w-4" />
             </Button>
           </div>
+
+          {/* Exportar */}
+          {isAdmin && citas.length > 0 && (
+            <Select onValueChange={(v) => v === "excel" ? exportarExcel() : exportarCSV()}>
+              <SelectTrigger className="w-[140px]">
+                <Download className="h-4 w-4 mr-2" />
+                Exportar
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="excel">Excel (.xlsx)</SelectItem>
+                <SelectItem value="csv">CSV</SelectItem>
+              </SelectContent>
+            </Select>
+          )}
 
           {/* Nueva cita */}
           <Button
@@ -499,81 +629,166 @@ export function Agenda() {
         </div>
       </div>
 
-      {/* Calendario semanal con drag and drop */}
+      {/* Calendario con drag and drop */}
       <DndContext
         sensors={sensors}
         onDragStart={handleDragStart}
         onDragEnd={handleDragEnd}
       >
         <div className="bg-white rounded-xl shadow-sm border border-crudo-200 overflow-hidden">
-          {/* Cabecera con días */}
-          <div className="grid grid-cols-8 border-b border-crudo-200">
-            <div className="p-3 text-center text-sm font-medium text-carbon-500 border-r border-crudo-200">
-              Hora
-            </div>
-            {diasSemana.map((dia) => (
-              <div
-                key={dia.toISOString()}
-                className={`p-3 text-center border-r border-crudo-200 last:border-r-0 ${
-                  isSameDay(dia, new Date()) ? "bg-salvia-50" : ""
-                }`}
-              >
-                <div className="text-xs text-carbon-500 uppercase">
-                  {format(dia, "EEE", { locale: es })}
+          {vistaActual === "semanal" ? (
+            <>
+              {/* VISTA SEMANAL - Cabecera con días */}
+              <div className="grid grid-cols-8 border-b border-crudo-200">
+                <div className="p-3 text-center text-sm font-medium text-carbon-500 border-r border-crudo-200">
+                  Hora
                 </div>
-                <div
-                  className={`text-lg font-semibold ${
-                    isSameDay(dia, new Date())
-                      ? "text-salvia-600"
-                      : "text-carbon-800"
-                  }`}
-                >
-                  {format(dia, "d")}
-                </div>
-              </div>
-            ))}
-          </div>
-
-          {/* Cuerpo con horas */}
-          <div className="max-h-[600px] overflow-y-auto">
-            {horasDelDia.map((hora) => (
-              <div
-                key={hora}
-                className="grid grid-cols-8 border-b border-crudo-100 last:border-b-0"
-              >
-                {/* Columna de hora */}
-                <div className="p-2 text-xs text-carbon-500 text-center border-r border-crudo-200 bg-crudo-50">
-                  {hora}
-                </div>
-
-                {/* Columnas de días */}
-                {diasSemana.map((dia) => {
-                  const citasSlot = getCitasHora(dia, hora);
-                  const slotId = `${format(dia, "yyyy-MM-dd")}_${hora}`;
-                  return (
-                    <DroppableSlot
-                      key={slotId}
-                      id={slotId}
-                      isToday={isSameDay(dia, new Date())}
-                      onClick={() => {
-                        if (citasSlot.length === 0) {
-                          abrirModalNuevaCita(dia, hora);
-                        }
-                      }}
+                {diasSemana.map((dia) => (
+                  <div
+                    key={dia.toISOString()}
+                    className={`p-3 text-center border-r border-crudo-200 last:border-r-0 ${
+                      isSameDay(dia, new Date()) ? "bg-salvia-50" : ""
+                    }`}
+                  >
+                    <div className="text-xs text-carbon-500 uppercase">
+                      {format(dia, "EEE", { locale: es })}
+                    </div>
+                    <div
+                      className={`text-lg font-semibold ${
+                        isSameDay(dia, new Date())
+                          ? "text-salvia-600"
+                          : "text-carbon-800"
+                      }`}
                     >
-                      {citasSlot.map((cita) => (
-                        <DraggableCita
-                          key={cita.id}
-                          cita={cita}
-                          onClick={() => abrirModalEditarCita(cita)}
-                        />
-                      ))}
-                    </DroppableSlot>
-                  );
-                })}
+                      {format(dia, "d")}
+                    </div>
+                  </div>
+                ))}
               </div>
-            ))}
-          </div>
+
+              {/* VISTA SEMANAL - Cuerpo con horas */}
+              <div className="max-h-[600px] overflow-y-auto">
+                {horasDelDia.map((hora) => (
+                  <div
+                    key={hora}
+                    className="grid grid-cols-8 border-b border-crudo-100 last:border-b-0"
+                  >
+                    {/* Columna de hora */}
+                    <div className="p-2 text-xs text-carbon-500 text-center border-r border-crudo-200 bg-crudo-50">
+                      {hora}
+                    </div>
+
+                    {/* Columnas de días */}
+                    {diasSemana.map((dia) => {
+                      const citasSlot = getCitasHora(dia, hora);
+                      const slotId = `${format(dia, "yyyy-MM-dd")}_${hora}`;
+                      return (
+                        <DroppableSlot
+                          key={slotId}
+                          id={slotId}
+                          isToday={isSameDay(dia, new Date())}
+                          onClick={() => {
+                            if (citasSlot.length === 0) {
+                              abrirModalNuevaCita(dia, hora);
+                            }
+                          }}
+                        >
+                          {citasSlot.map((cita) => (
+                            <DraggableCita
+                              key={cita.id}
+                              cita={cita}
+                              onClick={() => abrirModalEditarCita(cita)}
+                            />
+                          ))}
+                        </DroppableSlot>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </>
+          ) : (
+            <>
+              {/* VISTA DIARIA - Cabecera con empleados */}
+              <div
+                className="grid border-b border-crudo-200"
+                style={{
+                  gridTemplateColumns: `80px repeat(${empleados.length}, 1fr)`,
+                }}
+              >
+                <div className="p-3 text-center text-sm font-medium text-carbon-500 border-r border-crudo-200">
+                  Hora
+                </div>
+                {empleados.map((emp) => (
+                  <div
+                    key={emp.id}
+                    className="p-3 text-center border-r border-crudo-200 last:border-r-0"
+                  >
+                    <div className="flex items-center justify-center gap-2">
+                      <div
+                        className="w-3 h-3 rounded-full"
+                        style={{ backgroundColor: emp.color }}
+                      />
+                      <span className="font-medium text-carbon-800 text-sm">
+                        {emp.nombre}
+                      </span>
+                    </div>
+                    <div className="text-xs text-carbon-500">
+                      {emp.apellidos}
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* VISTA DIARIA - Cuerpo con horas */}
+              <div className="max-h-[600px] overflow-y-auto">
+                {horasDelDia.map((hora) => (
+                  <div
+                    key={hora}
+                    className="grid border-b border-crudo-100 last:border-b-0"
+                    style={{
+                      gridTemplateColumns: `80px repeat(${empleados.length}, 1fr)`,
+                    }}
+                  >
+                    {/* Columna de hora */}
+                    <div className="p-2 text-xs text-carbon-500 text-center border-r border-crudo-200 bg-crudo-50">
+                      {hora}
+                    </div>
+
+                    {/* Columnas de empleados */}
+                    {empleados.map((emp) => {
+                      const citasSlot = citas.filter(
+                        (c) =>
+                          c.empleado_id === emp.id &&
+                          c.hora.substring(0, 5) === hora
+                      );
+                      const slotId = `${format(fechaActual, "yyyy-MM-dd")}_${hora}_${emp.id}`;
+                      return (
+                        <DroppableSlot
+                          key={slotId}
+                          id={`${format(fechaActual, "yyyy-MM-dd")}_${hora}`}
+                          isToday={isSameDay(fechaActual, new Date())}
+                          onClick={() => {
+                            if (citasSlot.length === 0) {
+                              abrirModalNuevaCita(fechaActual, hora);
+                            }
+                          }}
+                        >
+                          {citasSlot.map((cita) => (
+                            <DraggableCita
+                              key={cita.id}
+                              cita={cita}
+                              onClick={() => abrirModalEditarCita(cita)}
+                            />
+                          ))}
+                        </DroppableSlot>
+                      );
+                    })}
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
         </div>
 
         {/* Overlay de arrastre */}

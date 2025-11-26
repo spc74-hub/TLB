@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { Link, useSearchParams } from "react-router-dom";
+import { motion } from "framer-motion";
 import {
   Search,
   Filter,
@@ -9,8 +10,10 @@ import {
   X,
   Check,
   SlidersHorizontal,
-  Loader2,
 } from "lucide-react";
+import { PageTransition, staggerContainer, staggerItem } from "@/components/ui/motion";
+import { ProductGridSkeleton } from "@/components/skeletons/ProductCardSkeleton";
+import { Skeleton } from "@/components/ui/skeleton";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent } from "@/components/ui/card";
@@ -23,6 +26,8 @@ import {
   type CategoriaProducto,
 } from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
+import { useWishlist } from "@/context/WishlistContext";
+import { SEO } from "@/components/SEO";
 
 export function Tienda() {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -43,6 +48,7 @@ export function Tienda() {
   const [mostrarFiltros, setMostrarFiltros] = useState(false);
 
   const { agregarProducto, estaEnCarrito, cantidadTotal } = useCart();
+  const { toggleFavorito, esFavorito } = useWishlist();
 
   // Cargar datos de Supabase
   useEffect(() => {
@@ -136,10 +142,35 @@ export function Tienda() {
 
   if (loading) {
     return (
-      <div className="bg-crudo-50 min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <Loader2 className="h-12 w-12 animate-spin text-salvia-500 mx-auto mb-4" />
-          <p className="text-carbon-600">Cargando productos...</p>
+      <div className="bg-crudo-50 min-h-screen">
+        {/* Header skeleton */}
+        <section className="bg-gradient-to-r from-salvia-600 to-salvia-700 py-12">
+          <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+            <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+              <div>
+                <Skeleton className="h-10 w-32 bg-white/20 mb-2" />
+                <Skeleton className="h-5 w-64 bg-white/20" />
+              </div>
+              <Skeleton className="h-10 w-28 bg-white/20" />
+            </div>
+          </div>
+        </section>
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-8">
+          {/* Barra de búsqueda skeleton */}
+          <div className="flex flex-col sm:flex-row gap-4 mb-6">
+            <Skeleton className="h-10 flex-1" />
+            <Skeleton className="h-10 w-28" />
+          </div>
+          {/* Categorías skeleton */}
+          <div className="flex flex-wrap gap-2 mb-8">
+            {Array.from({ length: 5 }).map((_, i) => (
+              <Skeleton key={i} className="h-8 w-24" />
+            ))}
+          </div>
+          {/* Contador skeleton */}
+          <Skeleton className="h-5 w-40 mb-6" />
+          {/* Grid skeleton */}
+          <ProductGridSkeleton count={8} />
         </div>
       </div>
     );
@@ -157,6 +188,13 @@ export function Tienda() {
   }
 
   return (
+    <PageTransition>
+      <SEO
+        title="Tienda"
+        url="/tienda"
+        description="Descubre nuestra seleccion de productos naturales para el cuidado personal. Cremas, aceites, cosmeticos naturales y mas."
+        keywords="productos naturales, cosmeticos naturales, cremas, aceites, cuidado personal, belleza natural"
+      />
     <div className="bg-crudo-50 min-h-screen">
       {/* Header */}
       <section className="bg-gradient-to-r from-salvia-600 to-salvia-700 py-12">
@@ -299,11 +337,17 @@ export function Tienda() {
 
         {/* Grid de productos */}
         {productosFiltrados.length > 0 ? (
-          <div className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
+          <motion.div
+            className="grid sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6"
+            variants={staggerContainer}
+            initial="hidden"
+            animate="visible"
+            key={`${categoriaSeleccionada}-${busqueda}-${soloNaturales}-${soloVeganos}-${soloOfertas}`}
+          >
             {productosFiltrados.map((producto) => (
+              <motion.div key={producto.id} variants={staggerItem}>
               <Card
-                key={producto.id}
-                className="group bg-white border-crudo-200 hover:shadow-lg transition-all overflow-hidden"
+                className="group bg-white border-crudo-200 hover:shadow-lg transition-all overflow-hidden h-full"
               >
                 <Link to={`/tienda/${producto.id}`}>
                   <div className="aspect-square bg-crudo-100 relative overflow-hidden">
@@ -327,6 +371,22 @@ export function Tienda() {
                         <Badge className="bg-salvia-500 text-white">Vegano</Badge>
                       )}
                     </div>
+                    {/* Boton favorito */}
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className={`absolute top-2 right-2 bg-white/80 hover:bg-white ${
+                        esFavorito(producto.id)
+                          ? "text-terracota-500 hover:text-terracota-600"
+                          : "text-carbon-400 hover:text-terracota-500"
+                      }`}
+                      onClick={(e) => {
+                        e.preventDefault();
+                        toggleFavorito(adaptarProductoParaCarrito(producto));
+                      }}
+                    >
+                      <Heart className={`h-5 w-5 ${esFavorito(producto.id) ? "fill-current" : ""}`} />
+                    </Button>
                   </div>
                 </Link>
                 <CardContent className="p-4">
@@ -385,8 +445,9 @@ export function Tienda() {
                   )}
                 </CardContent>
               </Card>
+              </motion.div>
             ))}
-          </div>
+          </motion.div>
         ) : (
           <div className="text-center py-12">
             <Filter className="h-12 w-12 text-crudo-300 mx-auto mb-4" />
@@ -403,5 +464,6 @@ export function Tienda() {
         )}
       </div>
     </div>
+    </PageTransition>
   );
 }

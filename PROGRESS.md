@@ -1,6 +1,6 @@
 # The Lobby Beauty - Progreso del Proyecto
 
-> Última actualización: 2025-11-26
+> Última actualización: 2025-11-26 (PM)
 
 ## Resumen del Proyecto
 
@@ -141,7 +141,7 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ---
 
-## Fase 5: Mejoras de UX 🔲 PENDIENTE
+## Fase 5: Mejoras de UX ✅ COMPLETADO
 
 ### 5.1 Contenido Visual
 - [ ] Imágenes reales de productos
@@ -150,16 +150,27 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ### 5.2 Cuenta de Usuario
 - [x] Página de perfil
-- [ ] Historial de pedidos
+- [x] Historial de pedidos
 - [ ] Historial de citas
 - [x] Editar datos personales
 - [ ] Recuperación de contraseña (UI)
 
-### 5.3 Funcionalidades Extra
-- [ ] Lista de favoritos/wishlist
-- [ ] Reseñas de productos
-- [ ] Compartir en redes sociales
+### 5.3 Funcionalidades Extra ✅ COMPLETADO
+- [x] Lista de favoritos/wishlist ✅
+- [x] Reseñas de productos ✅
+- [x] Compartir en redes sociales ✅
 - [ ] Newsletter
+
+### 5.4 UX/UI Mejorado ✅ COMPLETADO
+- [x] Vista diaria en agenda ✅
+- [x] Exportar datos a Excel/CSV ✅
+- [x] Animaciones de transición (framer-motion) ✅
+- [x] Skeleton loaders mientras carga ✅
+
+### 5.5 SEO ✅ COMPLETADO
+- [x] Meta tags dinámicos (react-helmet-async) ✅
+- [x] Sitemap XML ✅
+- [x] Open Graph para redes sociales ✅
 
 ---
 
@@ -331,6 +342,37 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Indicadores visuales de estado en citas (puntos de colores)
 - [x] Función `getCitasSinAsignar()` en supabase.ts
 
+### UX/UI Mejorado (2025-11-26)
+- [x] Vista diaria en agenda con navegación por día
+- [x] Exportar datos a Excel/CSV en panel admin (pedidos, citas, empleados)
+- [x] Animaciones de transición con framer-motion
+- [x] Skeleton loaders:
+  - ProductSkeleton.tsx para productos
+  - ServiceSkeleton.tsx para servicios
+  - AgendaSkeleton.tsx para agenda
+- [x] Lista de favoritos/wishlist:
+  - WishlistContext.tsx con persistencia localStorage
+  - Página Favoritos.tsx (`/favoritos`)
+  - Botón de favoritos en ProductCard y ProductoDetalle
+  - Corazón en header con contador
+- [x] Reseñas de productos:
+  - ProductReviews.tsx con sistema de estrellas
+  - Ordenación por fecha/valoración
+  - Integrado en ProductoDetalle.tsx
+
+### SEO y Social (2025-11-26)
+- [x] Meta tags dinámicos con react-helmet-async:
+  - SEO.tsx componente reutilizable
+  - HelmetProvider en main.tsx
+  - SEO en Home, Tienda, Servicios, ProductoDetalle
+- [x] Sitemap XML (`/public/sitemap.xml`)
+- [x] robots.txt (`/public/robots.txt`)
+- [x] Open Graph y Twitter Cards para compartir
+- [x] Botones de compartir en redes sociales:
+  - ShareButtons.tsx (Facebook, Twitter, WhatsApp, Email)
+  - Copiar enlace al portapapeles
+  - Integrado en ProductoDetalle.tsx
+
 ---
 
 ## Notas y Decisiones
@@ -390,28 +432,28 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 ## Backlog (Funcionalidades Opcionales)
 
 ### Agenda
-- [ ] Vista diaria en agenda
+- [x] Vista diaria en agenda ✅
 - [x] Arrastrar y soltar citas (drag & drop) ✅
 - [ ] Recordatorios SMS (24h antes)
 
 ### Dashboard Admin
-- [ ] Exportar datos a Excel/CSV
+- [x] Exportar datos a Excel/CSV ✅
 
 ### UX/UI
 - [ ] Modo oscuro
-- [ ] Animaciones de transición
-- [ ] Skeleton loaders mientras carga
+- [x] Animaciones de transición ✅
+- [x] Skeleton loaders mientras carga ✅
 
 ### Clientes
-- [ ] Lista de favoritos/wishlist
-- [ ] Reseñas de productos
+- [x] Lista de favoritos/wishlist ✅
+- [x] Reseñas de productos ✅
 - [ ] Newsletter con suscripción
 
 ### SEO y Marketing
-- [ ] Meta tags dinámicos
-- [ ] Sitemap XML
-- [ ] Open Graph para redes sociales
-- [ ] Compartir en redes sociales
+- [x] Meta tags dinámicos ✅
+- [x] Sitemap XML ✅
+- [x] Open Graph para redes sociales ✅
+- [x] Compartir en redes sociales ✅
 
 ### Integraciones
 - [ ] Google Calendar sync

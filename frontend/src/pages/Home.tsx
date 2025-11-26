@@ -12,6 +12,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { SEO } from "@/components/SEO";
 
 const heroImages = [
   { src: "/images/TLB Cejas.jpg", alt: "Servicios de cejas" },
@@ -93,6 +94,11 @@ export function Home() {
 
   return (
     <div>
+      <SEO
+        url="/"
+        description="Centro de belleza y bienestar con servicios de manicura, pedicura, depilacion, cejas y productos naturales. Especialistas en belleza natural sin toxicos."
+        keywords="salon de belleza, manicura, pedicura, depilacion, cejas, productos naturales, beauty, bienestar"
+      />
       {/* Hero Section */}
       <section className="relative bg-gradient-to-br from-crudo-100 via-crudo-50 to-salvia-50 py-20 lg:py-32">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">

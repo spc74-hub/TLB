@@ -25,6 +25,9 @@ import {
   type CategoriaProductoInfo,
 } from "@/lib/supabase";
 import { useCart } from "@/context/CartContext";
+import { ProductReviews } from "@/components/ProductReviews";
+import { SEO } from "@/components/SEO";
+import { ShareButtons } from "@/components/ShareButtons";
 
 export function ProductoDetalle() {
   const { id } = useParams<{ id: string }>();
@@ -131,6 +134,14 @@ export function ProductoDetalle() {
 
   return (
     <div className="bg-crudo-50 min-h-screen">
+      <SEO
+        title={producto.nombre}
+        url={`/tienda/${producto.id}`}
+        description={producto.descripcion_corta || producto.descripcion}
+        image={producto.imagen_url || undefined}
+        type="product"
+        keywords={`${producto.nombre}, ${producto.categoria}, productos naturales, cosmeticos`}
+      />
       {/* Breadcrumb */}
       <div className="bg-white border-b border-crudo-200">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-4">
@@ -208,9 +219,16 @@ export function ProductoDetalle() {
             <p className="text-sm text-salvia-600 uppercase tracking-wide mb-2">
               {categoria?.nombre}
             </p>
-            <h1 className="font-display text-3xl sm:text-4xl font-bold text-carbon-800 mb-4">
-              {producto.nombre}
-            </h1>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <h1 className="font-display text-3xl sm:text-4xl font-bold text-carbon-800">
+                {producto.nombre}
+              </h1>
+              <ShareButtons
+                url={`/tienda/${producto.id}`}
+                title={producto.nombre}
+                description={producto.descripcion_corta || producto.descripcion}
+              />
+            </div>
 
             {/* Badges de características */}
             <div className="flex flex-wrap gap-2 mb-6">
@@ -355,6 +373,18 @@ export function ProductoDetalle() {
               </CardContent>
             </Card>
           )}
+        </div>
+
+        {/* Reseñas de productos */}
+        <div className="mt-12">
+          <Card className="border-crudo-200">
+            <CardContent className="p-6">
+              <h2 className="font-display text-2xl font-bold text-carbon-800 mb-6">
+                Opiniones de clientes
+              </h2>
+              <ProductReviews productoId={producto.id} />
+            </CardContent>
+          </Card>
         </div>
 
         {/* Productos relacionados */}
