@@ -173,7 +173,7 @@ class ReservaUpdate(BaseModel):
 class Reserva(ReservaBase):
     """Esquema completo de reserva."""
     id: int
-    usuario_id: str
+    usuario_id: Optional[str] = None
     estado: EstadoReserva = EstadoReserva.PENDIENTE
     created_at: datetime
     updated_at: Optional[datetime] = None

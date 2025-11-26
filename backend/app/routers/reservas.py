@@ -6,6 +6,7 @@ Gestiona los endpoints relacionados con las reservas de citas.
 from fastapi import APIRouter, HTTPException, Query, BackgroundTasks
 from datetime import date, time, datetime
 from typing import Optional
+import uuid
 
 from app.models.schemas import (
     Reserva,
@@ -19,6 +20,10 @@ from app.core.database import init_supabase
 from app.services.email import (
     enviar_confirmacion_reserva,
     enviar_cancelacion_reserva,
+)
+from app.services.whatsapp import (
+    enviar_confirmacion_cita,
+    enviar_cancelacion_cita,
 )
 
 router = APIRouter(
@@ -144,7 +149,7 @@ async def crear_reserva(reserva: ReservaCreate, background_tasks: BackgroundTask
     # Verificar que el servicio existe y obtener detalles
     servicio = (
         supabase.table("servicios")
-        .select("id, nombre, duracion, precio")
+        .select("id, nombre, duracion_minutos, precio")
         .eq("id", reserva.servicio_id)
         .eq("activo", True)
         .single()
@@ -176,7 +181,16 @@ async def crear_reserva(reserva: ReservaCreate, background_tasks: BackgroundTask
     datos["fecha"] = datos["fecha"].isoformat()
     datos["hora"] = datos["hora"].strftime("%H:%M:%S")
     # TODO: Obtener usuario_id del token de autenticación
-    datos["usuario_id"] = "user-placeholder"
+    # Por ahora no incluimos usuario_id para permitir reservas sin autenticación
+    # datos["usuario_id"] = str(uuid.uuid4())
+
+    # Mapear nombres de campos del schema a nombres de columnas de la BD
+    if "cliente_nombre" in datos:
+        datos["nombre_cliente"] = datos.pop("cliente_nombre")
+    if "cliente_email" in datos:
+        datos["email_cliente"] = datos.pop("cliente_email")
+    if "cliente_telefono" in datos:
+        datos["telefono_cliente"] = datos.pop("cliente_telefono")
 
     response = supabase.table("reservas").insert(datos).execute()
     reserva_creada = response.data[0]
@@ -190,8 +204,20 @@ async def crear_reserva(reserva: ReservaCreate, background_tasks: BackgroundTask
             servicio_nombre=servicio.data["nombre"],
             fecha=reserva.fecha,
             hora=reserva.hora,
-            duracion=servicio.data["duracion"],
+            duracion=servicio.data["duracion_minutos"],
             precio=float(servicio.data["precio"]),
+        )
+
+    # Enviar WhatsApp de confirmación si hay teléfono
+    if reserva.cliente_telefono:
+        background_tasks.add_task(
+            enviar_confirmacion_cita,
+            telefono=reserva.cliente_telefono,
+            nombre_cliente=reserva.cliente_nombre,
+            servicio_nombre=servicio.data["nombre"],
+            fecha=reserva.fecha,
+            hora=reserva.hora,
+            duracion=servicio.data["duracion_minutos"],
         )
 
     return reserva_creada
@@ -256,16 +282,28 @@ async def cancelar_reserva(reserva_id: int, background_tasks: BackgroundTasks):
         .execute()
     )
 
-    # Enviar email de cancelación si hay email del cliente
+    # Enviar notificaciones de cancelación
     reserva = reserva_data.data
-    if reserva.get("cliente_email"):
-        fecha = datetime.strptime(reserva["fecha"], "%Y-%m-%d").date()
-        hora = datetime.strptime(reserva["hora"], "%H:%M:%S").time()
-        servicio_nombre = reserva.get("servicios", {}).get("nombre", "Servicio")
+    fecha = datetime.strptime(reserva["fecha"], "%Y-%m-%d").date()
+    hora = datetime.strptime(reserva["hora"], "%H:%M:%S").time()
+    servicio_nombre = reserva.get("servicios", {}).get("nombre", "Servicio")
 
+    # Email de cancelación
+    if reserva.get("cliente_email"):
         background_tasks.add_task(
             enviar_cancelacion_reserva,
             email_cliente=reserva["cliente_email"],
+            nombre_cliente=reserva.get("cliente_nombre", "Cliente"),
+            servicio_nombre=servicio_nombre,
+            fecha=fecha,
+            hora=hora,
+        )
+
+    # WhatsApp de cancelación
+    if reserva.get("cliente_telefono"):
+        background_tasks.add_task(
+            enviar_cancelacion_cita,
+            telefono=reserva["cliente_telefono"],
             nombre_cliente=reserva.get("cliente_nombre", "Cliente"),
             servicio_nombre=servicio_nombre,
             fecha=fecha,

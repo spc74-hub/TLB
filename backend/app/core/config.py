@@ -38,6 +38,11 @@ class Settings(BaseSettings):
     # En produccion con dominio verificado: "The Lobby Beauty <noreply@thelobbybeauty.com>"
     email_from: str = "The Lobby Beauty <onboarding@resend.dev>"
 
+    # Twilio WhatsApp
+    twilio_account_sid: str = ""
+    twilio_auth_token: str = ""
+    twilio_whatsapp_from: str = "whatsapp:+14155238886"  # Sandbox number
+
     class Config:
         env_file = ".env"
         env_file_encoding = "utf-8"

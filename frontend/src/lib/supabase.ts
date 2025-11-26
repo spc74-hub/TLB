@@ -621,24 +621,46 @@ export async function getReservasPorFecha(fecha: string) {
   return data as Reserva[];
 }
 
-// Crear una nueva reserva
+// Crear una nueva reserva (a través del backend para enviar notificaciones)
 export async function crearReserva(datos: CrearReservaData) {
-  const { data, error } = await supabase
-    .from("reservas")
-    .insert({
-      ...datos,
-      estado: "pendiente",
-    })
-    .select()
-    .single();
+  const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1";
 
-  if (error) {
-    if (error.code === "23505") {
+  // Mapear los nombres de campos del frontend a los del backend
+  const datosBackend = {
+    servicio_id: datos.servicio_id,
+    fecha: datos.fecha,
+    hora: datos.hora,
+    cliente_nombre: datos.nombre_cliente,
+    cliente_email: datos.email_cliente,
+    cliente_telefono: datos.telefono_cliente,
+    notas: datos.notas,
+  };
+
+  const response = await fetch(`${API_URL}/reservas/`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify(datosBackend),
+  });
+
+  if (!response.ok) {
+    const errorData = await response.json().catch(() => ({}));
+    if (response.status === 409) {
       throw new Error("Este horario ya está reservado. Por favor, elige otro.");
     }
-    throw error;
+    throw new Error(errorData.detail || "Error al crear la reserva");
   }
-  return data as Reserva;
+
+  const reservaCreada = await response.json();
+
+  // Mapear la respuesta del backend al formato del frontend
+  return {
+    ...reservaCreada,
+    nombre_cliente: reservaCreada.cliente_nombre,
+    email_cliente: reservaCreada.cliente_email,
+    telefono_cliente: reservaCreada.cliente_telefono,
+  } as Reserva;
 }
 
 // Obtener reservas del usuario actual
