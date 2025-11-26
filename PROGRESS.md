@@ -1,6 +1,6 @@
 # The Lobby Beauty - Progreso del Proyecto
 
-> Última actualización: 2025-11-26 (PM) - Final
+> Última actualización: 2025-11-26 (PM) - Notificaciones
 
 ## Resumen del Proyecto
 
@@ -386,6 +386,19 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
   - Estado de éxito con instrucciones
   - Ruta `/recuperar-password` en App.tsx
 
+### Sistema de Notificaciones (2025-11-26)
+- [x] Notificaciones de reserva vía backend API:
+  - Frontend ahora llama a la API del backend en lugar de insertar directamente en Supabase
+  - Corrección de mapeo de campos (cliente_email → email_cliente, etc.)
+  - usuario_id ahora opcional para permitir reservas sin autenticación
+- [x] Servicio de WhatsApp con Twilio:
+  - `backend/app/services/whatsapp.py` - Plantillas de mensajes
+  - `backend/app/routers/whatsapp.py` - Endpoints para envío
+  - Confirmación de cita por WhatsApp
+  - Cancelación de cita por WhatsApp
+- [x] Email de confirmación con Resend (código listo)
+- [x] Notificaciones se envían en background (no bloquean la respuesta)
+
 ---
 
 ## Notas y Decisiones
@@ -470,7 +483,7 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ### Integraciones
 - [ ] Google Calendar sync
-- [ ] WhatsApp Business API
+- [x] WhatsApp Business API (Twilio)
 - [ ] Google Analytics / Plausible
 
 ### Emails (Resend)
@@ -479,3 +492,46 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [ ] Activar emails de confirmación de citas
 - [ ] Email de confirmación de pedido
 - [ ] Recordatorio 24h antes de cita
+
+---
+
+## Estadísticas del Proyecto
+
+### Líneas de Código (2025-11-26)
+| Componente | Líneas |
+|------------|--------|
+| Frontend (React/TypeScript) | ~11,800 |
+| Backend (Python/FastAPI) | ~2,900 |
+| Database (SQL) | ~1,900 |
+| CSS | ~130 |
+| **TOTAL** | **~20,620** |
+
+### Estimación de Esfuerzo
+
+**Cálculo basado en productividad de desarrollador full-stack nivel medio:**
+- Productividad estimada: ~100-150 líneas de código funcional/día (incluyendo debugging, testing, documentación)
+- Se considera: diseño, implementación, integración de APIs, configuración BD, etc.
+
+| Métrica | Valor |
+|---------|-------|
+| Líneas totales | 20,620 |
+| Días estimados (a 125 LOC/día) | **~165 días** |
+| Jornadas de 8h | **~165 jornadas** |
+| Semanas laborales (5 días) | **~33 semanas** |
+| Meses (22 días/mes) | **~7.5 meses** |
+
+### Estimación de Costes (50 EUR/hora)
+
+| Concepto | Cálculo | Coste |
+|----------|---------|-------|
+| Jornadas totales | 165 días × 8h = 1,320 horas | |
+| **Coste total estimado** | 1,320h × 50€/h | **66,000 EUR** |
+
+> **Nota:** Esta estimación incluye:
+> - Sistema completo de ecommerce con Stripe
+> - Sistema de reservas con agenda interna
+> - Panel de administración completo
+> - Autenticación y roles de usuario
+> - Integración con Supabase, Stripe, Resend, Twilio
+> - SEO, PWA-ready, diseño responsive
+> - Notificaciones por email y WhatsApp
