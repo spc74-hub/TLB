@@ -94,8 +94,13 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Modal de nueva cita con selección de empleado, servicio, fecha y hora
 - [x] Validación de disponibilidad por empleado
 - [x] Colores por empleado en calendario
+- [x] Arrastrar y soltar citas (drag & drop) ✅
+- [x] Filtro por estado de cita (activas, pendientes, completadas, etc.) ✅
+- [x] Cambio de estado en tiempo real desde modal ✅
+- [x] Citas completadas/canceladas con texto tachado ✅
+- [x] Filtro "Sin asignar" para citas sin empleado ✅
+- [x] Estado "Pendiente" para nuevas citas ✅
 - [ ] Vista diaria (opcional)
-- [ ] Arrastrar y soltar citas (opcional)
 
 ### 3.3 Roles y Permisos
 - [x] Admin: ve todas las citas, puede crear/editar/eliminar
@@ -315,6 +320,17 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Función `generarTodosHorarios()` con info de disponibilidad
 - [x] Scripts SQL para RLS de reservas (database/fix_reservas.sql, fix_reservas_disponibilidad.sql)
 
+### Mejoras Agenda Admin (2025-11-26)
+- [x] Drag & drop para reagendar citas (@dnd-kit/core)
+- [x] Pre-rellenado automático de hora al editar cita existente
+- [x] Filtro "Sin asignar" para ver citas sin empleado
+- [x] Estado "Pendiente" para nuevas citas (indicador amarillo)
+- [x] Filtro por estado (Activas, Todas, Pendientes, Confirmadas, Completadas, Canceladas)
+- [x] Cambio de estado en tiempo real con feedback visual inmediato
+- [x] Citas completadas/canceladas con texto tachado y opacidad reducida
+- [x] Indicadores visuales de estado en citas (puntos de colores)
+- [x] Función `getCitasSinAsignar()` en supabase.ts
+
 ---
 
 ## Notas y Decisiones
@@ -375,7 +391,7 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ### Agenda
 - [ ] Vista diaria en agenda
-- [ ] Arrastrar y soltar citas (drag & drop)
+- [x] Arrastrar y soltar citas (drag & drop) ✅
 - [ ] Recordatorios SMS (24h antes)
 
 ### Dashboard Admin

@@ -779,6 +779,26 @@ export async function getCitasEmpleado(empleadoId: number, desde: string, hasta:
   return data as Reserva[];
 }
 
+// Obtener citas sin empleado asignado
+export async function getCitasSinAsignar(desde: string, hasta: string) {
+  const { data, error } = await supabase
+    .from("reservas")
+    .select(`
+      *,
+      servicio:servicios(*),
+      empleado:empleados(*)
+    `)
+    .is("empleado_id", null)
+    .gte("fecha", desde)
+    .lte("fecha", hasta)
+    .in("estado", ["pendiente", "confirmada", "completada"])
+    .order("fecha")
+    .order("hora");
+
+  if (error) throw error;
+  return data as Reserva[];
+}
+
 // Obtener citas de un día específico con empleado
 export async function getCitasDia(fecha: string, empleadoId?: number) {
   let query = supabase
@@ -801,9 +821,10 @@ export async function getCitasDia(fecha: string, empleadoId?: number) {
   return data as Reserva[];
 }
 
-// Datos para crear cita desde agenda (empleado obligatorio)
+// Datos para crear cita desde agenda (empleado opcional)
 export interface CrearCitaData extends Omit<CrearReservaData, "empleado_id"> {
-  empleado_id: number;
+  empleado_id?: number | null;
+  estado?: EstadoReserva;
 }
 
 // Crear cita desde agenda (admin/profesional)
@@ -814,7 +835,7 @@ export async function crearCita(datos: CrearCitaData) {
     .from("reservas")
     .insert({
       ...datos,
-      estado: "confirmada", // Las citas creadas desde agenda se confirman directamente
+      estado: datos.estado || "confirmada", // Por defecto confirmada, pero puede venir como pendiente
     })
     .select(`
       *,

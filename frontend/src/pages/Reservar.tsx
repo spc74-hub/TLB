@@ -195,11 +195,6 @@ export function Reservar() {
     return generarTodosHorarios(horarios, diaSemana, reservasDelDia, duracion);
   }, [fechaSeleccionada, horarios, reservasDelDia, servicioSeleccionado]);
 
-  // Para compatibilidad: lista de horas disponibles
-  const horariosDisponibles = useMemo(() => {
-    return todosHorarios.filter(slot => slot.disponible).map(slot => slot.hora);
-  }, [todosHorarios]);
-
   // Set de fechas bloqueadas
   const fechasBloqueadasSet = useMemo(() => {
     return new Set(diasBloqueados.map((d) => d.fecha));
