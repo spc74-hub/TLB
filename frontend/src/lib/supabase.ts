@@ -672,19 +672,43 @@ export async function cancelarReserva(reservaId: number, userId: string) {
 }
 
 // Generar slots de horarios disponibles para un día
+export type SlotHorario = {
+  hora: string;
+  disponible: boolean;
+};
+
 export function generarHorariosDisponibles(
   horarios: Horario[],
   diaSemana: number,
   reservasDelDia: Reserva[],
   duracionServicio: number = 30
 ): string[] {
+  return generarTodosHorarios(horarios, diaSemana, reservasDelDia, duracionServicio)
+    .filter(slot => slot.disponible)
+    .map(slot => slot.hora);
+}
+
+export function generarTodosHorarios(
+  horarios: Horario[],
+  diaSemana: number,
+  reservasDelDia: Reserva[],
+  duracionServicio: number = 30
+): SlotHorario[] {
   // Encontrar el horario del día
   const horarioDelDia = horarios.filter((h) => h.dia_semana === diaSemana);
 
   if (horarioDelDia.length === 0) return [];
 
-  const slots: string[] = [];
-  const horasOcupadas = new Set(reservasDelDia.map((r) => r.hora));
+  const slots: SlotHorario[] = [];
+
+  // Normalizar horas ocupadas a formato HH:MM (PostgreSQL devuelve HH:MM:SS)
+  const horasOcupadas = new Set(
+    reservasDelDia.map((r) => {
+      // Extraer solo HH:MM de formatos como "16:00:00" o "16:00"
+      const parts = r.hora.split(":");
+      return `${parts[0].padStart(2, "0")}:${parts[1].padStart(2, "0")}`;
+    })
+  );
 
   for (const horario of horarioDelDia) {
     const [inicioHora, inicioMin] = horario.hora_inicio.split(":").map(Number);
@@ -698,15 +722,16 @@ export function generarHorariosDisponibles(
       const minutos = horaActual % 60;
       const horaStr = `${horas.toString().padStart(2, "0")}:${minutos.toString().padStart(2, "0")}`;
 
-      if (!horasOcupadas.has(horaStr)) {
-        slots.push(horaStr);
-      }
+      slots.push({
+        hora: horaStr,
+        disponible: !horasOcupadas.has(horaStr)
+      });
 
       horaActual += 30; // Incremento de 30 minutos
     }
   }
 
-  return slots.sort();
+  return slots.sort((a, b) => a.hora.localeCompare(b.hora));
 }
 
 // ============== AGENDA INTERNA ==============

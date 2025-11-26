@@ -302,6 +302,19 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
   - ServicioDetalle.tsx (detalle de servicio)
   - ServiceCard.tsx (variante featured)
 
+### Sistema de Reservas Cliente (2025-11-26)
+- [x] Página `/reservar` con flujo de 4 pasos
+- [x] Selección de servicio con filtro por categoría
+- [x] Calendario con días bloqueados y sin horario deshabilitados
+- [x] Visualización de horarios disponibles y ocupados
+  - Horarios ocupados en gris y tachados (no seleccionables)
+  - Horarios disponibles seleccionables
+- [x] Formulario de datos del cliente (nombre, email, teléfono, notas)
+- [x] Pre-relleno de datos si usuario logueado
+- [x] Confirmación de reserva con número de reserva
+- [x] Función `generarTodosHorarios()` con info de disponibilidad
+- [x] Scripts SQL para RLS de reservas (database/fix_reservas.sql, fix_reservas_disponibilidad.sql)
+
 ---
 
 ## Notas y Decisiones

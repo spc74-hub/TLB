@@ -34,12 +34,13 @@ import {
   getDiasBloqueados,
   getReservasPorFecha,
   crearReserva,
-  generarHorariosDisponibles,
+  generarTodosHorarios,
   type Servicio,
   type CategoriaServicioInfo,
   type Horario,
   type DiaBloqueado,
   type Reserva,
+  type SlotHorario,
 } from "@/lib/supabase";
 import { useAuth } from "@/context/AuthContext";
 
@@ -56,6 +57,7 @@ export function Reservar() {
   const [horarios, setHorarios] = useState<Horario[]>([]);
   const [diasBloqueados, setDiasBloqueados] = useState<DiaBloqueado[]>([]);
   const [reservasDelDia, setReservasDelDia] = useState<Reserva[]>([]);
+  const [refreshKey, setRefreshKey] = useState(0); // Para forzar recarga de reservas
   const [loading, setLoading] = useState(true);
   const [loadingHorarios, setLoadingHorarios] = useState(false);
   const [submitting, setSubmitting] = useState(false);
@@ -81,23 +83,48 @@ export function Reservar() {
     async function cargarDatos() {
       try {
         setLoading(true);
-        const [serviciosData, categoriasData, horariosData, diasBloqueadosData] = await Promise.all([
-          getServicios(),
-          getCategoriasServicios(),
-          getHorarios(),
-          getDiasBloqueados(
+        setError(null);
+
+        console.log("Cargando datos de reserva...");
+
+        // Cargar cada recurso por separado para mejor diagnóstico
+        const serviciosData = await getServicios();
+        console.log("Servicios cargados:", serviciosData?.length || 0);
+
+        let categoriasData: CategoriaServicioInfo[] = [];
+        try {
+          categoriasData = await getCategoriasServicios();
+          console.log("Categorías cargadas:", categoriasData?.length || 0);
+        } catch (catErr) {
+          console.warn("Error cargando categorías (no crítico):", catErr);
+        }
+
+        let horariosData: Horario[] = [];
+        try {
+          horariosData = await getHorarios();
+          console.log("Horarios cargados:", horariosData?.length || 0);
+        } catch (horErr) {
+          console.warn("Error cargando horarios:", horErr);
+        }
+
+        let diasBloqueadosData: DiaBloqueado[] = [];
+        try {
+          diasBloqueadosData = await getDiasBloqueados(
             format(new Date(), "yyyy-MM-dd"),
             format(addDays(new Date(), 60), "yyyy-MM-dd")
-          ),
-        ]);
+          );
+          console.log("Días bloqueados cargados:", diasBloqueadosData?.length || 0);
+        } catch (diasErr) {
+          console.warn("Error cargando días bloqueados (no crítico):", diasErr);
+        }
 
-        setServicios(serviciosData);
-        setCategorias(categoriasData);
-        setHorarios(horariosData);
-        setDiasBloqueados(diasBloqueadosData);
+        setServicios(serviciosData || []);
+        setCategorias(categoriasData || []);
+        setHorarios(horariosData || []);
+        setDiasBloqueados(diasBloqueadosData || []);
 
         // Si hay servicio preseleccionado
-        if (servicioIdParam) {
+        if (servicioIdParam && serviciosData) {
           const servicio = serviciosData.find((s) => s.id === parseInt(servicioIdParam));
           if (servicio) {
             setServicioSeleccionado(servicio);
@@ -127,7 +154,7 @@ export function Reservar() {
     }
   }, [user, perfil]);
 
-  // Cargar reservas cuando se selecciona una fecha
+  // Cargar reservas cuando se selecciona una fecha o cuando refreshKey cambia
   useEffect(() => {
     async function cargarReservasDelDia() {
       if (!fechaSeleccionada) return;
@@ -135,7 +162,9 @@ export function Reservar() {
       try {
         setLoadingHorarios(true);
         const fechaStr = format(fechaSeleccionada, "yyyy-MM-dd");
+        console.log("Cargando reservas para:", fechaStr, "refreshKey:", refreshKey);
         const reservas = await getReservasPorFecha(fechaStr);
+        console.log("Reservas encontradas:", reservas.length, reservas.map(r => r.hora));
         setReservasDelDia(reservas);
       } catch (err) {
         console.error("Error cargando reservas:", err);
@@ -146,7 +175,7 @@ export function Reservar() {
 
     cargarReservasDelDia();
     setHoraSeleccionada(""); // Reset hora al cambiar fecha
-  }, [fechaSeleccionada]);
+  }, [fechaSeleccionada, refreshKey]);
 
   // Servicios filtrados por categoría
   const serviciosFiltrados = useMemo(() => {
@@ -156,15 +185,20 @@ export function Reservar() {
     );
   }, [categoriaSeleccionada, servicios]);
 
-  // Horarios disponibles para el día seleccionado
-  const horariosDisponibles = useMemo(() => {
+  // Todos los horarios del día (disponibles y ocupados)
+  const todosHorarios = useMemo((): SlotHorario[] => {
     if (!fechaSeleccionada || horarios.length === 0) return [];
 
     const diaSemana = fechaSeleccionada.getDay();
     const duracion = servicioSeleccionado?.duracion_minutos || 30;
 
-    return generarHorariosDisponibles(horarios, diaSemana, reservasDelDia, duracion);
+    return generarTodosHorarios(horarios, diaSemana, reservasDelDia, duracion);
   }, [fechaSeleccionada, horarios, reservasDelDia, servicioSeleccionado]);
+
+  // Para compatibilidad: lista de horas disponibles
+  const horariosDisponibles = useMemo(() => {
+    return todosHorarios.filter(slot => slot.disponible).map(slot => slot.hora);
+  }, [todosHorarios]);
 
   // Set de fechas bloqueadas
   const fechasBloqueadasSet = useMemo(() => {
@@ -247,6 +281,8 @@ export function Reservar() {
     setServicioSeleccionado(null);
     setFechaSeleccionada(undefined);
     setHoraSeleccionada("");
+    setReservasDelDia([]); // Limpiar reservas del día para forzar recarga
+    setRefreshKey((prev) => prev + 1); // Incrementar para forzar recarga cuando se seleccione fecha
     setDatosCliente({
       nombre: perfil ? `${perfil.nombre || ""} ${perfil.apellidos || ""}`.trim() : "",
       email: user?.email || "",
@@ -360,14 +396,14 @@ export function Reservar() {
               <div className="mb-6">
                 <Label className="text-base">Filtrar por categoría</Label>
                 <Select
-                  value={categoriaSeleccionada}
-                  onValueChange={setCategoriaSeleccionada}
+                  value={categoriaSeleccionada || "todas"}
+                  onValueChange={(value) => setCategoriaSeleccionada(value === "todas" ? "" : value)}
                 >
                   <SelectTrigger className="w-full sm:w-64 mt-2 bg-white border-crudo-300">
                     <SelectValue placeholder="Todas las categorías" />
                   </SelectTrigger>
                   <SelectContent>
-                    <SelectItem value="">Todas las categorías</SelectItem>
+                    <SelectItem value="todas">Todas las categorías</SelectItem>
                     {categorias.map((cat) => (
                       <SelectItem key={cat.slug} value={cat.slug}>
                         {cat.nombre}
@@ -508,19 +544,22 @@ export function Reservar() {
                           <div className="flex items-center justify-center py-8">
                             <Loader2 className="h-6 w-6 animate-spin text-salvia-500" />
                           </div>
-                        ) : horariosDisponibles.length > 0 ? (
+                        ) : todosHorarios.length > 0 ? (
                           <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
-                            {horariosDisponibles.map((hora) => (
+                            {todosHorarios.map((slot) => (
                               <button
-                                key={hora}
-                                onClick={() => handleSeleccionarHora(hora)}
+                                key={slot.hora}
+                                onClick={() => slot.disponible && handleSeleccionarHora(slot.hora)}
+                                disabled={!slot.disponible}
                                 className={`px-3 py-2 text-sm rounded-lg border transition-colors ${
-                                  horaSeleccionada === hora
-                                    ? "bg-salvia-500 text-white border-salvia-500"
-                                    : "bg-white border-crudo-300 text-carbon-700 hover:border-salvia-400"
+                                  !slot.disponible
+                                    ? "bg-crudo-100 border-crudo-200 text-carbon-400 line-through cursor-not-allowed"
+                                    : horaSeleccionada === slot.hora
+                                      ? "bg-salvia-500 text-white border-salvia-500"
+                                      : "bg-white border-crudo-300 text-carbon-700 hover:border-salvia-400"
                                 }`}
                               >
-                                {hora}
+                                {slot.hora}
                               </button>
                             ))}
                           </div>
