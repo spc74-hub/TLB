@@ -307,3 +307,212 @@ class CategoriaProductoInfo(BaseModel):
 
     class Config:
         from_attributes = True
+
+
+# ============== CRM - CLIENTES ==============
+
+class OrigenCliente(str, Enum):
+    """Origen del cliente en el sistema."""
+    WEB = "web"
+    TIENDA = "tienda"
+    IMPORTACION = "importacion"
+    MANUAL = "manual"
+    RESERVA = "reserva"
+    PEDIDO = "pedido"
+
+
+class EstadoCampana(str, Enum):
+    """Estados posibles de una campaña."""
+    BORRADOR = "borrador"
+    PROGRAMADA = "programada"
+    ENVIANDO = "enviando"
+    COMPLETADA = "completada"
+    CANCELADA = "cancelada"
+
+
+class CanalComunicacion(str, Enum):
+    """Canales de comunicación disponibles."""
+    EMAIL = "email"
+    WHATSAPP = "whatsapp"
+    AMBOS = "ambos"
+
+
+class EstadoEnvio(str, Enum):
+    """Estados posibles de un envío."""
+    PENDIENTE = "pendiente"
+    ENVIADO = "enviado"
+    ENTREGADO = "entregado"
+    FALLIDO = "fallido"
+    REBOTADO = "rebotado"
+
+
+class ClienteBase(BaseModel):
+    """Esquema base para clientes."""
+    nombre: str = Field(..., min_length=2, max_length=200)
+    email: Optional[EmailStr] = None
+    telefono: Optional[str] = Field(None, max_length=20)
+    notas: Optional[str] = None
+    etiquetas: Optional[list[str]] = None
+
+
+class ClienteCreate(ClienteBase):
+    """Esquema para crear un cliente."""
+    acepta_marketing: bool = False
+    origen: OrigenCliente = OrigenCliente.MANUAL
+
+
+class ClienteUpdate(BaseModel):
+    """Esquema para actualizar un cliente."""
+    nombre: Optional[str] = Field(None, min_length=2, max_length=200)
+    email: Optional[EmailStr] = None
+    telefono: Optional[str] = Field(None, max_length=20)
+    notas: Optional[str] = None
+    etiquetas: Optional[list[str]] = None
+    acepta_marketing: Optional[bool] = None
+
+
+class Cliente(ClienteBase):
+    """Esquema completo de cliente."""
+    id: str  # UUID
+    usuario_id: Optional[str] = None
+    acepta_marketing: bool = False
+    fecha_opt_in: Optional[datetime] = None
+    fecha_opt_out: Optional[datetime] = None
+    origen: OrigenCliente = OrigenCliente.MANUAL
+    total_reservas: int = 0
+    total_pedidos: int = 0
+    total_gastado: float = 0
+    ultima_visita: Optional[date] = None
+    ultima_compra: Optional[date] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ClienteConHistorial(Cliente):
+    """Cliente con historial de reservas y pedidos."""
+    reservas: Optional[list] = None
+    pedidos: Optional[list] = None
+
+
+class ListaClientes(BaseModel):
+    """Lista paginada de clientes."""
+    items: list[Cliente]
+    total: int
+    pagina: int
+    por_pagina: int
+
+
+# ============== CRM - CAMPAÑAS ==============
+
+class FiltrosSegmentacion(BaseModel):
+    """Filtros para segmentar destinatarios de campañas."""
+    etiquetas: Optional[list[str]] = None
+    min_compras: Optional[int] = None
+    max_compras: Optional[int] = None
+    min_reservas: Optional[int] = None
+    min_gastado: Optional[float] = None
+    ultimo_mes: Optional[bool] = None
+    sin_actividad_dias: Optional[int] = None
+
+
+class CampanaBase(BaseModel):
+    """Esquema base para campañas."""
+    nombre: str = Field(..., min_length=2, max_length=200)
+    descripcion: Optional[str] = None
+    asunto: Optional[str] = Field(None, max_length=200)  # Para emails
+    mensaje: str = Field(..., min_length=10)
+    mensaje_html: Optional[str] = None
+    canal: CanalComunicacion = CanalComunicacion.EMAIL
+    filtros_segmentacion: Optional[FiltrosSegmentacion] = None
+
+
+class CampanaCreate(CampanaBase):
+    """Esquema para crear una campaña."""
+    fecha_programada: Optional[datetime] = None
+
+
+class CampanaUpdate(BaseModel):
+    """Esquema para actualizar una campaña."""
+    nombre: Optional[str] = Field(None, min_length=2, max_length=200)
+    descripcion: Optional[str] = None
+    asunto: Optional[str] = Field(None, max_length=200)
+    mensaje: Optional[str] = Field(None, min_length=10)
+    mensaje_html: Optional[str] = None
+    canal: Optional[CanalComunicacion] = None
+    filtros_segmentacion: Optional[FiltrosSegmentacion] = None
+    fecha_programada: Optional[datetime] = None
+    estado: Optional[EstadoCampana] = None
+
+
+class Campana(CampanaBase):
+    """Esquema completo de campaña."""
+    id: int
+    estado: EstadoCampana = EstadoCampana.BORRADOR
+    fecha_programada: Optional[datetime] = None
+    fecha_inicio: Optional[datetime] = None
+    fecha_fin: Optional[datetime] = None
+    total_destinatarios: int = 0
+    total_enviados: int = 0
+    total_entregados: int = 0
+    total_fallidos: int = 0
+    total_abiertos: int = 0
+    total_clicks: int = 0
+    creado_por: Optional[str] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ListaCampanas(BaseModel):
+    """Lista paginada de campañas."""
+    items: list[Campana]
+    total: int
+    pagina: int
+    por_pagina: int
+
+
+# ============== CRM - ENVÍOS ==============
+
+class CampanaEnvio(BaseModel):
+    """Registro de envío de campaña a un cliente."""
+    id: int
+    campana_id: int
+    cliente_id: str
+    estado: EstadoEnvio = EstadoEnvio.PENDIENTE
+    canal: CanalComunicacion
+    destinatario: str
+    fecha_enviado: Optional[datetime] = None
+    fecha_entregado: Optional[datetime] = None
+    fecha_abierto: Optional[datetime] = None
+    fecha_click: Optional[datetime] = None
+    error_mensaje: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+# ============== IMPORTACIÓN EXCEL ==============
+
+class ClienteImportacion(BaseModel):
+    """Esquema para importar clientes desde Excel."""
+    nombre: str
+    email: Optional[str] = None
+    telefono: Optional[str] = None
+    etiquetas: Optional[str] = None  # Separadas por coma
+    acepta_marketing: Optional[bool] = True
+    notas: Optional[str] = None
+
+
+class ResultadoImportacion(BaseModel):
+    """Resultado de importación de clientes."""
+    total_procesados: int
+    creados: int
+    actualizados: int
+    errores: int
+    detalle_errores: Optional[list[str]] = None

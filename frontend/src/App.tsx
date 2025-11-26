@@ -22,7 +22,7 @@ import {
   Favoritos,
   RecuperarPassword,
 } from "@/pages";
-import { Dashboard, Empleados, Servicios as AdminServicios, Productos as AdminProductos, Pedidos as AdminPedidos } from "@/pages/admin";
+import { Dashboard, Empleados, Servicios as AdminServicios, Productos as AdminProductos, Pedidos as AdminPedidos, Clientes as AdminClientes } from "@/pages/admin";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
 
 function App() {
@@ -66,6 +66,7 @@ function App() {
           <Route path="servicios" element={<AdminServicios />} />
           <Route path="productos" element={<AdminProductos />} />
           <Route path="pedidos" element={<AdminPedidos />} />
+          <Route path="clientes" element={<AdminClientes />} />
         </Route>
         </Routes>
       </WishlistProvider>

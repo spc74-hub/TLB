@@ -11,6 +11,7 @@ import {
   Menu,
   X,
   ChevronLeft,
+  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -46,6 +47,11 @@ const menuItems = [
     title: "Pedidos",
     href: "/admin/pedidos",
     icon: ShoppingBag,
+  },
+  {
+    title: "Clientes (CRM)",
+    href: "/admin/clientes",
+    icon: UserCircle,
   },
   {
     title: "Configuración",
