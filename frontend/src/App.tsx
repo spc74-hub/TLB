@@ -20,6 +20,7 @@ import {
   Perfil,
   Agenda,
   Favoritos,
+  RecuperarPassword,
 } from "@/pages";
 import { Dashboard, Empleados, Servicios as AdminServicios, Productos as AdminProductos, Pedidos as AdminPedidos } from "@/pages/admin";
 import { ProtectedRoute } from "@/components/ProtectedRoute";
@@ -45,6 +46,7 @@ function App() {
           <Route path="contacto" element={<Contacto />} />
           <Route path="login" element={<Login />} />
           <Route path="registro" element={<Registro />} />
+          <Route path="recuperar-password" element={<RecuperarPassword />} />
           <Route path="perfil" element={<ProtectedRoute><Perfil /></ProtectedRoute>} />
           <Route path="*" element={<NotFound />} />
         </Route>

@@ -12,13 +12,16 @@ import {
   Truck,
   Clock,
   Eye,
+  Calendar,
+  Scissors,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
-import { actualizarPerfil, getMisPedidos, type Pedido, type EstadoPedido } from "@/lib/supabase";
+import { actualizarPerfil, getMisPedidos, getMisReservas, cancelarReserva, type Pedido, type EstadoPedido, type Reserva, type EstadoReserva } from "@/lib/supabase";
 
 // Helper para mostrar estado de pedido
 const estadoConfig: Record<EstadoPedido, { label: string; color: string; icon: React.ReactNode }> = {
@@ -30,6 +33,14 @@ const estadoConfig: Record<EstadoPedido, { label: string; color: string; icon: R
   cancelado: { label: "Cancelado", color: "bg-red-100 text-red-700", icon: <Clock className="h-3 w-3" /> },
 };
 
+// Helper para mostrar estado de cita
+const estadoCitaConfig: Record<EstadoReserva, { label: string; color: string; icon: React.ReactNode }> = {
+  pendiente: { label: "Pendiente", color: "bg-amber-100 text-amber-700", icon: <Clock className="h-3 w-3" /> },
+  confirmada: { label: "Confirmada", color: "bg-blue-100 text-blue-700", icon: <CheckCircle2 className="h-3 w-3" /> },
+  completada: { label: "Completada", color: "bg-green-100 text-green-700", icon: <CheckCircle2 className="h-3 w-3" /> },
+  cancelada: { label: "Cancelada", color: "bg-red-100 text-red-700", icon: <XCircle className="h-3 w-3" /> },
+};
+
 export function Perfil() {
   const { user, perfil, loading: authLoading } = useAuth();
   const [saving, setSaving] = useState(false);
@@ -38,6 +49,9 @@ export function Perfil() {
   const [pedidos, setPedidos] = useState<Pedido[]>([]);
   const [loadingPedidos, setLoadingPedidos] = useState(true);
   const [pedidoExpandido, setPedidoExpandido] = useState<number | null>(null);
+  const [citas, setCitas] = useState<Reserva[]>([]);
+  const [loadingCitas, setLoadingCitas] = useState(true);
+  const [cancelando, setCancelando] = useState<number | null>(null);
 
   const [formData, setFormData] = useState({
     nombre: perfil?.nombre || "",
@@ -51,8 +65,34 @@ export function Perfil() {
         .then(setPedidos)
         .catch(console.error)
         .finally(() => setLoadingPedidos(false));
+
+      getMisReservas(user.id)
+        .then(setCitas)
+        .catch(console.error)
+        .finally(() => setLoadingCitas(false));
     }
   }, [user]);
+
+  const handleCancelarCita = async (citaId: number) => {
+    if (!user || cancelando) return;
+    if (!confirm("¿Estás seguro de que quieres cancelar esta cita?")) return;
+
+    setCancelando(citaId);
+    try {
+      await cancelarReserva(citaId, user.id);
+      setCitas(citas.map(c => c.id === citaId ? { ...c, estado: "cancelada" as EstadoReserva } : c));
+    } catch (err) {
+      console.error("Error cancelando cita:", err);
+      alert("No se pudo cancelar la cita. Inténtalo de nuevo.");
+    } finally {
+      setCancelando(null);
+    }
+  };
+
+  const esCitaFutura = (fecha: string, hora: string) => {
+    const fechaCita = new Date(`${fecha}T${hora}`);
+    return fechaCita > new Date();
+  };
 
   const handleChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     setFormData({ ...formData, [e.target.name]: e.target.value });
@@ -331,6 +371,103 @@ export function Perfil() {
                             )}
                           </div>
                         )}
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Historial de Citas */}
+          <Card className="border-crudo-200">
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <Calendar className="h-5 w-5 text-salvia-500" />
+                Mis Citas
+              </CardTitle>
+              <CardDescription>
+                Historial de tus reservas
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {loadingCitas ? (
+                <div className="flex items-center justify-center py-8">
+                  <Loader2 className="h-6 w-6 animate-spin text-salvia-500" />
+                </div>
+              ) : citas.length === 0 ? (
+                <div className="text-center py-8">
+                  <Calendar className="h-12 w-12 text-crudo-300 mx-auto mb-3" />
+                  <p className="text-carbon-500">Aun no tienes citas reservadas</p>
+                  <Button asChild className="mt-4 bg-salvia-500 hover:bg-salvia-600">
+                    <Link to="/reservar">Reservar cita</Link>
+                  </Button>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {citas.map((cita) => {
+                    const estado = estadoCitaConfig[cita.estado];
+                    const esFutura = esCitaFutura(cita.fecha, cita.hora);
+                    const puedeCancelar = esFutura && cita.estado !== "cancelada" && cita.estado !== "completada";
+
+                    return (
+                      <div
+                        key={cita.id}
+                        className={`border border-crudo-200 rounded-lg p-4 ${cita.estado === "cancelada" ? "opacity-60" : ""}`}
+                      >
+                        <div className="flex items-start justify-between gap-4">
+                          <div className="flex-1 min-w-0">
+                            <div className="flex items-center gap-2 mb-1">
+                              <Scissors className="h-4 w-4 text-salvia-500" />
+                              <span className="font-medium text-carbon-800 truncate">
+                                {cita.servicio?.nombre || "Servicio"}
+                              </span>
+                            </div>
+                            <div className="flex items-center gap-4 text-sm text-carbon-600">
+                              <span className="flex items-center gap-1">
+                                <Calendar className="h-3.5 w-3.5" />
+                                {new Date(cita.fecha).toLocaleDateString("es-ES", {
+                                  weekday: "short",
+                                  day: "numeric",
+                                  month: "short",
+                                })}
+                              </span>
+                              <span className="flex items-center gap-1">
+                                <Clock className="h-3.5 w-3.5" />
+                                {cita.hora}
+                              </span>
+                            </div>
+                            {cita.precio_total && (
+                              <p className="text-sm text-carbon-500 mt-1">
+                                {cita.precio_total.toFixed(2)}€
+                              </p>
+                            )}
+                          </div>
+                          <div className="flex flex-col items-end gap-2">
+                            <Badge className={`${estado.color} flex items-center gap-1`}>
+                              {estado.icon}
+                              {estado.label}
+                            </Badge>
+                            {puedeCancelar && (
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="text-red-600 hover:text-red-700 hover:bg-red-50 h-7 px-2"
+                                onClick={() => handleCancelarCita(cita.id)}
+                                disabled={cancelando === cita.id}
+                              >
+                                {cancelando === cita.id ? (
+                                  <Loader2 className="h-3 w-3 animate-spin" />
+                                ) : (
+                                  <>
+                                    <XCircle className="h-3 w-3 mr-1" />
+                                    Cancelar
+                                  </>
+                                )}
+                              </Button>
+                            )}
+                          </div>
+                        </div>
                       </div>
                     );
                   })}

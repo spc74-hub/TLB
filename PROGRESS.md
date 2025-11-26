@@ -1,6 +1,6 @@
 # The Lobby Beauty - Progreso del Proyecto
 
-> Última actualización: 2025-11-26 (PM)
+> Última actualización: 2025-11-26 (PM) - Final
 
 ## Resumen del Proyecto
 
@@ -43,7 +43,7 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Protección de rutas en frontend
 - [x] Estado de sesión en navbar
 - [x] Página de perfil de usuario
-- [ ] Recuperación de contraseña (UI pendiente)
+- [x] Recuperación de contraseña (UI) ✅
 
 ---
 
@@ -124,8 +124,8 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Vista general de estadísticas (citas, empleados, servicios, productos)
 - [x] Citas del día/semana
 - [x] Acciones rápidas
-- [ ] Pedidos recientes
-- [ ] Gráfico de ingresos
+- [x] Pedidos recientes ✅
+- [x] Gráfico de ingresos ✅
 
 ### 4.2 Gestión de Contenido ✅ COMPLETADO
 - [x] CRUD de servicios (con campo es_interno) `/admin/servicios`
@@ -151,9 +151,9 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 ### 5.2 Cuenta de Usuario
 - [x] Página de perfil
 - [x] Historial de pedidos
-- [ ] Historial de citas
+- [x] Historial de citas ✅
 - [x] Editar datos personales
-- [ ] Recuperación de contraseña (UI)
+- [x] Recuperación de contraseña (UI) ✅
 
 ### 5.3 Funcionalidades Extra ✅ COMPLETADO
 - [x] Lista de favoritos/wishlist ✅
@@ -373,6 +373,19 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
   - Copiar enlace al portapapeles
   - Integrado en ProductoDetalle.tsx
 
+### Funcionalidades Usuario (2025-11-26)
+- [x] Historial de citas en página de perfil:
+  - Sección "Mis Citas" en Perfil.tsx
+  - Estado visual con badges de colores
+  - Cancelación de citas futuras
+  - Indica si la cita es hoy o ya pasó
+- [x] Recuperación de contraseña:
+  - RecuperarPassword.tsx página completa
+  - Formulario de email con validación
+  - Integración con Supabase resetPasswordForEmail
+  - Estado de éxito con instrucciones
+  - Ruta `/recuperar-password` en App.tsx
+
 ---
 
 ## Notas y Decisiones
@@ -414,12 +427,12 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ### PASO 2: Mejoras Admin Panel ✅ COMPLETADO
 6. [x] Subida de imágenes (productos/servicios)
-7. [ ] Gráfico de ingresos en dashboard (opcional)
-8. [ ] Pedidos recientes en dashboard (opcional)
+7. [x] Gráfico de ingresos en dashboard ✅
+8. [x] Pedidos recientes en dashboard ✅
 
-### PASO 3: UX/Cuenta de Usuario
-9. [ ] Historial de citas del usuario
-10. [ ] Recuperación de contraseña (UI)
+### PASO 3: UX/Cuenta de Usuario ✅ COMPLETADO
+9. [x] Historial de citas del usuario ✅
+10. [x] Recuperación de contraseña (UI) ✅
 
 ### PASO 4: Despliegue (AL FINAL)
 11. [ ] Elegir opción de hosting
