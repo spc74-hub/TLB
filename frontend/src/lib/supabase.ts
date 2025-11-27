@@ -564,6 +564,7 @@ export interface CrearReservaData {
   notas?: string;
   precio_total?: number;
   usuario_id?: string;
+  acepta_marketing?: boolean; // Opt-in para comunicaciones de marketing
 }
 
 export interface Horario {
@@ -634,6 +635,7 @@ export async function crearReserva(datos: CrearReservaData) {
     cliente_email: datos.email_cliente,
     cliente_telefono: datos.telefono_cliente,
     notas: datos.notas,
+    acepta_marketing: datos.acepta_marketing || false,
   };
 
   const response = await fetch(`${API_URL}/reservas/`, {

@@ -26,6 +26,104 @@ from app.services.whatsapp import (
     enviar_cancelacion_cita,
 )
 
+
+def crear_o_actualizar_cliente_crm(
+    supabase,
+    nombre: str,
+    email: str = None,
+    telefono: str = None,
+    acepta_marketing: bool = False,
+    origen: str = "reserva",
+    reserva_id: int = None,
+    pedido_id: int = None,
+):
+    """
+    Crea o actualiza un cliente en el CRM.
+    Si el cliente ya existe (por email), actualiza sus datos.
+    Si no existe, lo crea como nuevo cliente.
+    Vincula la reserva/pedido al cliente.
+    """
+    try:
+        cliente_id = None
+
+        # Buscar cliente existente por email
+        if email:
+            existente = (
+                supabase.table("clientes")
+                .select("id, acepta_marketing, total_reservas")
+                .ilike("email", email)
+                .execute()
+            )
+            if existente.data:
+                cliente_id = existente.data[0]["id"]
+                acepta_marketing_actual = existente.data[0]["acepta_marketing"]
+                total_reservas_actual = existente.data[0].get("total_reservas", 0) or 0
+
+                # Actualizar datos del cliente
+                datos_actualizar = {
+                    "nombre": nombre,
+                    "telefono": telefono,
+                    "updated_at": datetime.now().isoformat(),
+                }
+
+                # Solo actualizar acepta_marketing si cambia a True
+                if acepta_marketing and not acepta_marketing_actual:
+                    datos_actualizar["acepta_marketing"] = True
+                    datos_actualizar["fecha_opt_in"] = datetime.now().isoformat()
+
+                # Incrementar contador de reservas directamente
+                if reserva_id:
+                    datos_actualizar["total_reservas"] = total_reservas_actual + 1
+                    datos_actualizar["ultima_visita"] = datetime.now().date().isoformat()
+
+                supabase.table("clientes").update(datos_actualizar).eq("id", cliente_id).execute()
+
+        # Si no existe, crear nuevo cliente
+        if not cliente_id:
+            datos_cliente = {
+                "nombre": nombre,
+                "email": email,
+                "telefono": telefono,
+                "acepta_marketing": acepta_marketing,
+                "origen": origen,
+                "total_reservas": 1 if reserva_id else 0,
+                "total_pedidos": 1 if pedido_id else 0,
+            }
+
+            if acepta_marketing:
+                datos_cliente["fecha_opt_in"] = datetime.now().isoformat()
+
+            if reserva_id:
+                datos_cliente["ultima_visita"] = datetime.now().date().isoformat()
+
+            response = supabase.table("clientes").insert(datos_cliente).execute()
+            cliente_id = response.data[0]["id"]
+
+        # Vincular reserva al cliente
+        if reserva_id and cliente_id:
+            # Usar upsert para evitar duplicados
+            supabase.table("cliente_reservas_link").upsert({
+                "cliente_id": cliente_id,
+                "reserva_id": reserva_id,
+            }, on_conflict="cliente_id,reserva_id").execute()
+
+        # Vincular pedido al cliente
+        if pedido_id and cliente_id:
+            supabase.table("cliente_pedidos_link").upsert({
+                "cliente_id": cliente_id,
+                "pedido_id": pedido_id,
+            }, on_conflict="cliente_id,pedido_id").execute()
+
+        return cliente_id
+
+    except Exception as e:
+        # Log del error pero no fallar la reserva/pedido
+        print(f"Error al crear/actualizar cliente CRM: {e}")
+        import traceback
+        traceback.print_exc()
+        return None
+
+
 router = APIRouter(
     prefix="/reservas",
     tags=["Reservas"],
@@ -192,8 +290,24 @@ async def crear_reserva(reserva: ReservaCreate, background_tasks: BackgroundTask
     if "cliente_telefono" in datos:
         datos["telefono_cliente"] = datos.pop("cliente_telefono")
 
+    # Extraer acepta_marketing antes de insertar (no es columna de reservas)
+    acepta_marketing = datos.pop("acepta_marketing", False)
+
     response = supabase.table("reservas").insert(datos).execute()
     reserva_creada = response.data[0]
+
+    # Crear o actualizar cliente en CRM si hay email o teléfono
+    if reserva.cliente_email or reserva.cliente_telefono:
+        background_tasks.add_task(
+            crear_o_actualizar_cliente_crm,
+            supabase=supabase,
+            nombre=reserva.cliente_nombre,
+            email=reserva.cliente_email,
+            telefono=reserva.cliente_telefono,
+            acepta_marketing=acepta_marketing,
+            origen="reserva",
+            reserva_id=reserva_creada["id"],
+        )
 
     # Enviar email de confirmación en background
     if reserva.cliente_email:

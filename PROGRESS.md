@@ -1,6 +1,6 @@
 # The Lobby Beauty - Progreso del Proyecto
 
-> Última actualización: 2025-11-26 (PM) - Notificaciones
+> Última actualización: 2025-11-27 - Ampliación ERP y Tesorería
 
 ## Resumen del Proyecto
 
@@ -399,6 +399,177 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - [x] Email de confirmación con Resend (código listo)
 - [x] Notificaciones se envían en background (no bloquean la respuesta)
 
+### Sistema CRM de Clientes (2025-11-26)
+- [x] Base de datos CRM:
+  - `database/crm_schema.sql` - Tablas clientes, campanas, campana_envios
+  - Tipos: origen_cliente, estado_campana, canal_comunicacion, estado_envio
+  - Links para vincular clientes con reservas y pedidos
+  - RLS policies para acceso admin
+- [x] Migración de datos existentes:
+  - `database/crm_migration.sql` - Script de migración
+  - Importa clientes desde reservas (por email/teléfono)
+  - Importa clientes desde pedidos (via perfiles)
+  - Vincula usuarios registrados con clientes
+  - Crea links automáticos a reservas/pedidos
+- [x] Backend API:
+  - `backend/app/routers/clientes.py` - Router completo
+  - CRUD de clientes con búsqueda y filtros
+  - Estadísticas de clientes
+  - Gestión de etiquetas para segmentación
+  - Opt-in/opt-out de marketing
+  - Importación CSV (auto-detección de delimitador: coma, punto y coma, tabulador)
+  - Exportación a CSV con filtros
+  - Schemas Pydantic en `models/schemas.py`
+- [x] Frontend Admin:
+  - `frontend/src/pages/admin/Clientes.tsx` - Página completa
+  - Lista de clientes con filtros (marketing, origen, etiquetas)
+  - Búsqueda por nombre, email, teléfono
+  - Estadísticas: total, acepta marketing, por origen
+  - CRUD completo con modales
+  - Ficha de cliente con historial
+  - Importar/exportar CSV
+  - Descarga de plantilla CSV
+
+### Sistema CRM Opt-in Marketing (2025-11-27) ✅
+- [x] Checkbox opt-in marketing en página de reservas (`/reservar`)
+- [x] Checkbox opt-in marketing en checkout (`/checkout`)
+- [x] Backend: actualizar cliente con opt-in al crear reserva/pedido
+  - Función `crear_o_actualizar_cliente_crm()` en `reservas.py`
+  - Se ejecuta en background task tras crear reserva
+  - Crea cliente nuevo o actualiza existente (por email)
+  - Vincula reserva/pedido al cliente via link tables
+  - Incrementa contadores (total_reservas, total_pedidos)
+- [ ] Sistema de campañas de email/WhatsApp (router + página admin) - PENDIENTE
+
+---
+
+## Fase 7: Ampliación ERP y Tesorería 🔲 PLANIFICADO
+
+> **Documento de especificación:** `/docs/AMPLIACION_ERP_TESORERIA.md`
+> **Estimación total:** 14-19 días de desarrollo
+
+Esta ampliación añade dos nuevos módulos al sistema:
+1. **Control de Gestión (Mini-ERP):** Registro de gastos, categorías, proveedores, dashboard P&L
+2. **Tesorería:** Cuentas de caja, movimientos, cierres diarios, previsión de liquidez
+
+### 7.1 Base de Datos (1-2 días) 🔲
+- [ ] Crear archivo `database/erp_tesoreria_schema.sql`
+- [ ] Nuevos ENUMs:
+  - `categoria_gasto` (nominas, alquiler, suministros, marketing, productos, formacion, otros)
+  - `tipo_cuenta` (efectivo, banco)
+  - `tipo_movimiento` (ingreso, gasto)
+  - `referencia_movimiento` (pedido, reserva, gasto, ajuste, cierre)
+  - `frecuencia_recurrencia` (semanal, quincenal, mensual, bimestral, trimestral, anual)
+- [ ] Tabla `expense_categories` - Categorías de gastos personalizables
+- [ ] Tabla `vendors` - Proveedores
+- [ ] Tabla `expenses` - Gastos con soporte de recurrencia
+- [ ] Tabla `cash_accounts` - Cuentas de caja (efectivo, banco)
+- [ ] Tabla `cash_movements` - Movimientos de caja
+- [ ] Tabla `cash_closings` - Cierres de caja diarios
+- [ ] Triggers para actualizar balances automáticamente
+- [ ] Políticas RLS para acceso admin
+- [ ] Índices para optimización de consultas
+
+### 7.2 Modelos Backend (1 día) 🔲
+- [ ] Schemas Pydantic en `backend/app/models/schemas.py`:
+  - ExpenseCategory, ExpenseCategoryCreate, ExpenseCategoryUpdate
+  - Vendor, VendorCreate, VendorUpdate
+  - Expense, ExpenseCreate, ExpenseUpdate, ExpenseWithDetails
+  - CashAccount, CashAccountCreate, CashAccountUpdate
+  - CashMovement, CashMovementCreate, CashMovementWithDetails
+  - CashClosing, CashClosingCreate, CashClosingWithDetails
+  - PLDashboardData, LiquidityForecast
+
+### 7.3 Backend Control de Gestión (2-3 días) 🔲
+- [ ] Router `backend/app/routers/gastos.py`:
+  - CRUD categorías de gastos
+  - CRUD proveedores
+  - CRUD gastos con filtros (fecha, categoría, proveedor)
+  - Generación automática de gastos recurrentes
+  - Estadísticas por categoría/período
+- [ ] Router `backend/app/routers/dashboard_gestion.py`:
+  - Dashboard P&L (ingresos vs gastos)
+  - Comparativa mensual/anual
+  - Desglose por categorías
+  - Métricas de ticket medio, margen, etc.
+- [ ] Registrar routers en `main.py`
+
+### 7.4 Backend Tesorería (2-3 días) 🔲
+- [ ] Router `backend/app/routers/tesoreria.py`:
+  - CRUD cuentas de caja
+  - CRUD movimientos de caja
+  - Transferencias entre cuentas
+  - Cierres de caja diarios
+  - Balance por cuenta
+  - Previsión de liquidez (próximos 30 días)
+- [ ] Captura automática de ingresos:
+  - Webhook Stripe: crear movimiento al confirmar pago
+  - Reserva completada: opción de registrar pago en efectivo
+- [ ] Registrar router en `main.py`
+
+### 7.5 Frontend Control de Gestión (3-4 días) 🔲
+- [ ] Página `/admin/gastos`:
+  - Lista de gastos con filtros y búsqueda
+  - Modal crear/editar gasto
+  - Vista de gastos recurrentes
+  - Gestión de categorías (sub-modal)
+  - Gestión de proveedores (sub-modal)
+  - Exportación a CSV/Excel
+- [ ] Página `/admin/dashboard-gestion`:
+  - Gráfico P&L (ingresos vs gastos)
+  - Selector de período (mes/trimestre/año)
+  - KPIs: margen bruto, ticket medio, gastos por categoría
+  - Comparativa con período anterior
+  - Top gastos del período
+- [ ] Actualizar `AdminLayout.tsx` con nuevas rutas
+- [ ] Actualizar `App.tsx` con rutas protegidas
+
+### 7.6 Frontend Tesorería (3-4 días) 🔲
+- [ ] Página `/admin/tesoreria`:
+  - Panel de cuentas con balances actuales
+  - Lista de movimientos con filtros
+  - Modal crear movimiento manual
+  - Modal transferencia entre cuentas
+- [ ] Página `/admin/cierres`:
+  - Calendario de cierres
+  - Proceso de cierre diario
+  - Historial de cierres con detalles
+  - Validación de descuadres
+- [ ] Widget de previsión de liquidez:
+  - Gráfico de balance proyectado
+  - Alertas de liquidez baja
+  - Gastos recurrentes pendientes
+- [ ] Actualizar `AdminLayout.tsx` y `App.tsx`
+
+### 7.7 Testing e Integración (2 días) 🔲
+- [ ] Tests de endpoints de gastos
+- [ ] Tests de endpoints de tesorería
+- [ ] Tests de triggers de balance
+- [ ] Verificar integración con webhook Stripe
+- [ ] Verificar captura de ingresos de reservas
+- [ ] Tests E2E de flujos principales
+- [ ] Documentación de APIs nuevas
+
+---
+
+## Tareas Pendientes (Backlog Anterior)
+
+### Emails (Resend) - PENDIENTE
+- [ ] Crear cuenta Resend
+- [ ] Configurar API key
+- [ ] Activar emails de confirmación de citas
+- [ ] Email de confirmación de pedido
+- [ ] Recordatorio 24h antes de cita
+
+### CRM - PENDIENTE
+- [ ] Sistema de campañas de email/WhatsApp (router + página admin)
+
+### Despliegue - PENDIENTE
+- [ ] Elegir opción de hosting
+- [ ] Configurar variables de entorno producción
+- [ ] Deploy frontend y backend
+- [ ] Configurar dominio
+
 ---
 
 ## Notas y Decisiones
@@ -425,6 +596,11 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 - `/admin/productos` - CRUD productos ✅
 - `/admin/empleados` - CRUD empleados ✅
 - `/admin/pedidos` - Gestión de pedidos ✅
+- `/admin/clientes` - CRM de clientes ✅
+- `/admin/gastos` - Gestión de gastos (ERP) 🔲
+- `/admin/dashboard-gestion` - Dashboard P&L (ERP) 🔲
+- `/admin/tesoreria` - Cuentas y movimientos 🔲
+- `/admin/cierres` - Cierres de caja 🔲
 - `/admin/configuracion` - (próximamente)
 
 ---

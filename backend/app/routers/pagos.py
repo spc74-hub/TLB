@@ -5,6 +5,7 @@ Router para gestión de pagos con Stripe.
 from fastapi import APIRouter, HTTPException, Request
 from pydantic import BaseModel
 from typing import List, Optional
+from datetime import datetime
 import stripe
 import json
 
@@ -20,6 +21,85 @@ stripe.api_key = settings.stripe_secret_key
 # Constantes de envío
 ENVIO_GRATIS_MINIMO = 50.0
 COSTE_ENVIO = 4.95
+
+
+def crear_o_actualizar_cliente_crm_pedido(
+    supabase,
+    nombre: str,
+    email: str,
+    telefono: str = None,
+    acepta_marketing: bool = False,
+    pedido_id: int = None,
+    total: float = 0,
+):
+    """
+    Crea o actualiza un cliente en el CRM desde un pedido.
+    """
+    try:
+        cliente_id = None
+
+        # Buscar cliente existente por email
+        existente = (
+            supabase.table("clientes")
+            .select("id, acepta_marketing, total_pedidos, total_gastado")
+            .ilike("email", email)
+            .execute()
+        )
+
+        if existente.data:
+            cliente_id = existente.data[0]["id"]
+            acepta_marketing_actual = existente.data[0]["acepta_marketing"]
+            total_pedidos_actual = existente.data[0].get("total_pedidos", 0) or 0
+            total_gastado_actual = existente.data[0].get("total_gastado", 0) or 0
+
+            # Actualizar datos del cliente
+            datos_actualizar = {
+                "nombre": nombre,
+                "telefono": telefono,
+                "total_pedidos": total_pedidos_actual + 1,
+                "total_gastado": total_gastado_actual + total,
+                "ultima_compra": datetime.now().isoformat(),
+                "updated_at": datetime.now().isoformat(),
+            }
+
+            # Solo actualizar acepta_marketing si cambia a True
+            if acepta_marketing and not acepta_marketing_actual:
+                datos_actualizar["acepta_marketing"] = True
+                datos_actualizar["fecha_opt_in"] = datetime.now().isoformat()
+
+            supabase.table("clientes").update(datos_actualizar).eq("id", cliente_id).execute()
+
+        else:
+            # Crear nuevo cliente
+            datos_cliente = {
+                "nombre": nombre,
+                "email": email,
+                "telefono": telefono,
+                "acepta_marketing": acepta_marketing,
+                "origen": "pedido",
+                "total_reservas": 0,
+                "total_pedidos": 1,
+                "total_gastado": total,
+                "ultima_compra": datetime.now().isoformat(),
+            }
+
+            if acepta_marketing:
+                datos_cliente["fecha_opt_in"] = datetime.now().isoformat()
+
+            response = supabase.table("clientes").insert(datos_cliente).execute()
+            cliente_id = response.data[0]["id"]
+
+        # Vincular pedido al cliente
+        if pedido_id and cliente_id:
+            supabase.table("cliente_pedidos_link").insert({
+                "cliente_id": cliente_id,
+                "pedido_id": pedido_id,
+            }).execute()
+
+        print(f"✅ Cliente CRM {'actualizado' if existente.data else 'creado'}: {email}")
+
+    except Exception as e:
+        print(f"⚠️ Error en CRM (pedido no afectado): {e}")
 
 
 class ItemCarrito(BaseModel):
@@ -42,6 +122,7 @@ class DatosEnvio(BaseModel):
     codigo_postal: str
     provincia: str
     notas: Optional[str] = ""
+    acepta_marketing: bool = False
 
 
 class CheckoutRequest(BaseModel):
@@ -117,6 +198,7 @@ async def create_checkout_session(request: CheckoutRequest):
             "envio_cp": request.datos_envio.codigo_postal,
             "envio_provincia": request.datos_envio.provincia,
             "envio_notas": (request.datos_envio.notas or "")[:500],
+            "acepta_marketing": str(request.datos_envio.acepta_marketing),
         }
 
         session = stripe.checkout.Session.create(
@@ -232,9 +314,27 @@ async def crear_pedido_desde_checkout(session: dict):
 
         print(f"✅ {len(items)} items añadidos al pedido #{pedido_id}")
 
-        # Enviar emails de confirmación (no bloqueante - errores no afectan al pedido)
+        # Crear o actualizar cliente en CRM
         email_cliente = metadata.get("envio_email")
         nombre_cliente = metadata.get("envio_nombre", "Cliente")
+        telefono_cliente = metadata.get("envio_telefono", "")
+        acepta_marketing = metadata.get("acepta_marketing", "False") == "True"
+
+        if email_cliente:
+            try:
+                crear_o_actualizar_cliente_crm_pedido(
+                    supabase=supabase,
+                    nombre=nombre_cliente,
+                    email=email_cliente,
+                    telefono=telefono_cliente,
+                    acepta_marketing=acepta_marketing,
+                    pedido_id=pedido_id,
+                    total=total,
+                )
+            except Exception as e:
+                print(f"⚠️ Error creando cliente CRM (pedido guardado): {e}")
+
+        # Enviar emails de confirmación (no bloqueante - errores no afectan al pedido)
         direccion_completa = f"{metadata.get('envio_direccion', '')}, {metadata.get('envio_cp', '')} {metadata.get('envio_ciudad', '')}"
 
         if email_cliente:

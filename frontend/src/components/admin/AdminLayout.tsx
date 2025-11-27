@@ -12,6 +12,8 @@ import {
   X,
   ChevronLeft,
   UserCircle,
+  Receipt,
+  Wallet,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -52,6 +54,16 @@ const menuItems = [
     title: "Clientes (CRM)",
     href: "/admin/clientes",
     icon: UserCircle,
+  },
+  {
+    title: "Gastos",
+    href: "/admin/gastos",
+    icon: Receipt,
+  },
+  {
+    title: "Tesorería",
+    href: "/admin/tesoreria",
+    icon: Wallet,
   },
   {
     title: "Configuración",

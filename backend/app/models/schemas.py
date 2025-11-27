@@ -160,6 +160,7 @@ class ReservaCreate(ReservaBase):
     cliente_nombre: str = Field(..., min_length=2, max_length=100)
     cliente_email: Optional[str] = Field(None, max_length=255)
     cliente_telefono: Optional[str] = Field(None, max_length=20)
+    acepta_marketing: bool = Field(default=False, description="Opt-in para comunicaciones de marketing")
 
 
 class ReservaUpdate(BaseModel):
@@ -516,3 +517,439 @@ class ResultadoImportacion(BaseModel):
     actualizados: int
     errores: int
     detalle_errores: Optional[list[str]] = None
+
+
+# ============== ERP - ENUMS ==============
+
+class CategoriaGastoBase(str, Enum):
+    """Categorías base de gastos."""
+    NOMINAS = "nominas"
+    ALQUILER = "alquiler"
+    SUMINISTROS = "suministros"
+    MARKETING = "marketing"
+    PRODUCTOS = "productos"
+    FORMACION = "formacion"
+    SEGUROS = "seguros"
+    IMPUESTOS = "impuestos"
+    MANTENIMIENTO = "mantenimiento"
+    OTROS = "otros"
+
+
+class TipoCuenta(str, Enum):
+    """Tipo de cuenta de caja."""
+    EFECTIVO = "efectivo"
+    BANCO = "banco"
+
+
+class TipoMovimiento(str, Enum):
+    """Tipo de movimiento de caja."""
+    INGRESO = "ingreso"
+    GASTO = "gasto"
+
+
+class ReferenciaMovimiento(str, Enum):
+    """Origen del movimiento."""
+    PEDIDO = "pedido"
+    RESERVA = "reserva"
+    GASTO = "gasto"
+    AJUSTE = "ajuste"
+    CIERRE = "cierre"
+    TRANSFERENCIA = "transferencia"
+
+
+class FrecuenciaRecurrencia(str, Enum):
+    """Frecuencia de gastos recurrentes."""
+    SEMANAL = "semanal"
+    QUINCENAL = "quincenal"
+    MENSUAL = "mensual"
+    BIMESTRAL = "bimestral"
+    TRIMESTRAL = "trimestral"
+    SEMESTRAL = "semestral"
+    ANUAL = "anual"
+
+
+# ============== ERP - CATEGORÍAS DE GASTOS ==============
+
+class ExpenseCategoryBase(BaseModel):
+    """Esquema base para categorías de gastos."""
+    nombre: str = Field(..., min_length=2, max_length=100)
+    categoria_base: CategoriaGastoBase = CategoriaGastoBase.OTROS
+    descripcion: Optional[str] = None
+    color: str = Field(default="#6B7280", max_length=7)
+    icono: str = Field(default="receipt", max_length=50)
+    activo: bool = True
+
+
+class ExpenseCategoryCreate(ExpenseCategoryBase):
+    """Esquema para crear una categoría de gastos."""
+    pass
+
+
+class ExpenseCategoryUpdate(BaseModel):
+    """Esquema para actualizar una categoría de gastos."""
+    nombre: Optional[str] = Field(None, min_length=2, max_length=100)
+    categoria_base: Optional[CategoriaGastoBase] = None
+    descripcion: Optional[str] = None
+    color: Optional[str] = Field(None, max_length=7)
+    icono: Optional[str] = Field(None, max_length=50)
+    activo: Optional[bool] = None
+
+
+class ExpenseCategory(ExpenseCategoryBase):
+    """Esquema completo de categoría de gastos."""
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============== ERP - PROVEEDORES ==============
+
+class VendorBase(BaseModel):
+    """Esquema base para proveedores."""
+    nombre: str = Field(..., min_length=2, max_length=200)
+    nif_cif: Optional[str] = Field(None, max_length=20)
+    email: Optional[EmailStr] = None
+    telefono: Optional[str] = Field(None, max_length=20)
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = Field(None, max_length=100)
+    codigo_postal: Optional[str] = Field(None, max_length=10)
+    provincia: Optional[str] = Field(None, max_length=100)
+    notas: Optional[str] = None
+    activo: bool = True
+
+
+class VendorCreate(VendorBase):
+    """Esquema para crear un proveedor."""
+    pass
+
+
+class VendorUpdate(BaseModel):
+    """Esquema para actualizar un proveedor."""
+    nombre: Optional[str] = Field(None, min_length=2, max_length=200)
+    nif_cif: Optional[str] = Field(None, max_length=20)
+    email: Optional[EmailStr] = None
+    telefono: Optional[str] = Field(None, max_length=20)
+    direccion: Optional[str] = None
+    ciudad: Optional[str] = Field(None, max_length=100)
+    codigo_postal: Optional[str] = Field(None, max_length=10)
+    provincia: Optional[str] = Field(None, max_length=100)
+    notas: Optional[str] = None
+    activo: Optional[bool] = None
+
+
+class Vendor(VendorBase):
+    """Esquema completo de proveedor."""
+    id: int
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============== ERP - GASTOS ==============
+
+class ExpenseBase(BaseModel):
+    """Esquema base para gastos."""
+    categoria_id: Optional[int] = None
+    vendor_id: Optional[int] = None
+    concepto: str = Field(..., min_length=2, max_length=500)
+    descripcion: Optional[str] = None
+    importe: float = Field(..., gt=0)
+    fecha: date = Field(default_factory=date.today)
+    fecha_vencimiento: Optional[date] = None
+    numero_factura: Optional[str] = Field(None, max_length=100)
+    archivo_url: Optional[str] = None
+    notas: Optional[str] = None
+
+
+class ExpenseCreate(ExpenseBase):
+    """Esquema para crear un gasto."""
+    es_recurrente: bool = False
+    frecuencia: Optional[FrecuenciaRecurrencia] = None
+    fecha_inicio_recurrencia: Optional[date] = None
+    fecha_fin_recurrencia: Optional[date] = None
+
+
+class ExpenseUpdate(BaseModel):
+    """Esquema para actualizar un gasto."""
+    categoria_id: Optional[int] = None
+    vendor_id: Optional[int] = None
+    concepto: Optional[str] = Field(None, min_length=2, max_length=500)
+    descripcion: Optional[str] = None
+    importe: Optional[float] = Field(None, gt=0)
+    fecha: Optional[date] = None
+    fecha_vencimiento: Optional[date] = None
+    numero_factura: Optional[str] = Field(None, max_length=100)
+    archivo_url: Optional[str] = None
+    notas: Optional[str] = None
+    pagado: Optional[bool] = None
+    fecha_pago: Optional[date] = None
+    cuenta_pago_id: Optional[int] = None
+
+
+class Expense(ExpenseBase):
+    """Esquema completo de gasto."""
+    id: int
+    es_recurrente: bool = False
+    frecuencia: Optional[FrecuenciaRecurrencia] = None
+    fecha_inicio_recurrencia: Optional[date] = None
+    fecha_fin_recurrencia: Optional[date] = None
+    gasto_padre_id: Optional[int] = None
+    pagado: bool = False
+    fecha_pago: Optional[date] = None
+    cuenta_pago_id: Optional[int] = None
+    movimiento_id: Optional[int] = None
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+class ExpenseWithDetails(Expense):
+    """Gasto con detalles de categoría y proveedor."""
+    categoria_nombre: Optional[str] = None
+    categoria_color: Optional[str] = None
+    categoria_icono: Optional[str] = None
+    vendor_nombre: Optional[str] = None
+    cuenta_nombre: Optional[str] = None
+
+
+class ListaExpenses(BaseModel):
+    """Lista paginada de gastos."""
+    items: list[ExpenseWithDetails]
+    total: int
+    pagina: int
+    por_pagina: int
+
+
+# ============== TESORERÍA - CUENTAS ==============
+
+class CashAccountBase(BaseModel):
+    """Esquema base para cuentas de caja."""
+    nombre: str = Field(..., min_length=2, max_length=100)
+    tipo: TipoCuenta
+    descripcion: Optional[str] = None
+    numero_cuenta: Optional[str] = Field(None, max_length=50)
+    entidad_bancaria: Optional[str] = Field(None, max_length=100)
+    activo: bool = True
+    es_principal: bool = False
+
+
+class CashAccountCreate(CashAccountBase):
+    """Esquema para crear una cuenta de caja."""
+    balance_inicial: float = Field(default=0.00)
+
+
+class CashAccountUpdate(BaseModel):
+    """Esquema para actualizar una cuenta de caja."""
+    nombre: Optional[str] = Field(None, min_length=2, max_length=100)
+    tipo: Optional[TipoCuenta] = None
+    descripcion: Optional[str] = None
+    numero_cuenta: Optional[str] = Field(None, max_length=50)
+    entidad_bancaria: Optional[str] = Field(None, max_length=100)
+    activo: Optional[bool] = None
+    es_principal: Optional[bool] = None
+
+
+class CashAccount(CashAccountBase):
+    """Esquema completo de cuenta de caja."""
+    id: int
+    balance_actual: float = 0.00
+    balance_inicial: float = 0.00
+    created_at: datetime
+    updated_at: Optional[datetime] = None
+
+    class Config:
+        from_attributes = True
+
+
+# ============== TESORERÍA - MOVIMIENTOS ==============
+
+class CashMovementBase(BaseModel):
+    """Esquema base para movimientos de caja."""
+    cuenta_id: int
+    tipo: TipoMovimiento
+    importe: float = Field(..., gt=0)
+    concepto: str = Field(..., min_length=2, max_length=500)
+    descripcion: Optional[str] = None
+    notas: Optional[str] = None
+
+
+class CashMovementCreate(CashMovementBase):
+    """Esquema para crear un movimiento de caja."""
+    referencia_tipo: ReferenciaMovimiento = ReferenciaMovimiento.AJUSTE
+    pedido_id: Optional[int] = None
+    reserva_id: Optional[int] = None
+    gasto_id: Optional[int] = None
+    cuenta_destino_id: Optional[int] = None  # Para transferencias
+
+
+class CashMovement(CashMovementBase):
+    """Esquema completo de movimiento de caja."""
+    id: int
+    fecha: datetime
+    referencia_tipo: ReferenciaMovimiento
+    pedido_id: Optional[int] = None
+    reserva_id: Optional[int] = None
+    gasto_id: Optional[int] = None
+    cuenta_destino_id: Optional[int] = None
+    movimiento_relacionado_id: Optional[int] = None
+    balance_posterior: Optional[float] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CashMovementWithDetails(CashMovement):
+    """Movimiento con detalles de cuenta."""
+    cuenta_nombre: str
+    cuenta_tipo: TipoCuenta
+    cuenta_destino_nombre: Optional[str] = None
+
+
+class ListaCashMovements(BaseModel):
+    """Lista paginada de movimientos."""
+    items: list[CashMovementWithDetails]
+    total: int
+    pagina: int
+    por_pagina: int
+
+
+# ============== TESORERÍA - CIERRES ==============
+
+class CashClosingBase(BaseModel):
+    """Esquema base para cierres de caja."""
+    cuenta_id: int
+    fecha: date
+    balance_cierre_real: float
+
+
+class CashClosingCreate(CashClosingBase):
+    """Esquema para crear un cierre de caja."""
+    notas: Optional[str] = None
+
+
+class CashClosing(BaseModel):
+    """Esquema completo de cierre de caja."""
+    id: int
+    cuenta_id: int
+    fecha: date
+    balance_apertura: float
+    balance_cierre_teorico: float
+    balance_cierre_real: float
+    diferencia: float
+    total_ingresos: float = 0.00
+    total_gastos: float = 0.00
+    num_operaciones: int = 0
+    desglose_ingresos: Optional[dict] = None
+    desglose_gastos: Optional[dict] = None
+    cerrado_por: Optional[str] = None
+    notas: Optional[str] = None
+    created_at: datetime
+
+    class Config:
+        from_attributes = True
+
+
+class CashClosingWithDetails(CashClosing):
+    """Cierre con detalles de cuenta."""
+    cuenta_nombre: str
+    cuenta_tipo: TipoCuenta
+
+
+class ListaCashClosings(BaseModel):
+    """Lista paginada de cierres."""
+    items: list[CashClosingWithDetails]
+    total: int
+    pagina: int
+    por_pagina: int
+
+
+# ============== DASHBOARD P&L ==============
+
+class PLDashboardData(BaseModel):
+    """Datos para el dashboard de P&L (Pérdidas y Ganancias)."""
+    periodo: str  # "2025-11" o "2025-Q4" o "2025"
+    total_ingresos: float
+    total_gastos: float
+    resultado: float
+    margen_porcentaje: float
+
+    # Desglose de ingresos
+    ingresos_pedidos: float = 0.00
+    ingresos_reservas: float = 0.00
+    ingresos_otros: float = 0.00
+
+    # Desglose de gastos por categoría
+    gastos_por_categoria: dict = {}  # {"nominas": 1500.00, "alquiler": 800.00, ...}
+
+    # Comparativa con periodo anterior
+    variacion_ingresos: Optional[float] = None  # Porcentaje
+    variacion_gastos: Optional[float] = None
+    variacion_resultado: Optional[float] = None
+
+    # KPIs
+    ticket_medio_pedidos: Optional[float] = None
+    ticket_medio_reservas: Optional[float] = None
+    num_pedidos: int = 0
+    num_reservas: int = 0
+
+
+class LiquidityForecast(BaseModel):
+    """Previsión de liquidez."""
+    fecha: date
+    balance_proyectado: float
+    ingresos_esperados: float = 0.00
+    gastos_programados: float = 0.00
+    gastos_recurrentes: float = 0.00
+    notas: Optional[str] = None
+
+
+class LiquidityForecastResponse(BaseModel):
+    """Respuesta de previsión de liquidez."""
+    balance_actual: float
+    previsiones: list[LiquidityForecast]
+    alerta_liquidez: bool = False
+    fecha_alerta: Optional[date] = None
+    mensaje_alerta: Optional[str] = None
+
+
+# ============== ESTADÍSTICAS ERP ==============
+
+class ExpenseStats(BaseModel):
+    """Estadísticas de gastos."""
+    total_periodo: float
+    total_pendiente: float
+    total_pagado: float
+    por_categoria: dict = {}
+    por_proveedor: dict = {}
+    gastos_recurrentes_activos: int = 0
+    proximos_vencimientos: list = []
+
+
+class CashStats(BaseModel):
+    """Estadísticas de tesorería."""
+    balance_total: float
+    balance_efectivo: float
+    balance_banco: float
+    ingresos_hoy: float = 0.00
+    gastos_hoy: float = 0.00
+    movimientos_hoy: int = 0
+    ultimo_cierre: Optional[date] = None
+
+
+# ============== TRANSFERENCIA ENTRE CUENTAS ==============
+
+class TransferenciaCreate(BaseModel):
+    """Esquema para crear una transferencia entre cuentas."""
+    cuenta_origen_id: int
+    cuenta_destino_id: int
+    importe: float = Field(..., gt=0)
+    concepto: str = Field(default="Transferencia entre cuentas", max_length=500)
+    notas: Optional[str] = None

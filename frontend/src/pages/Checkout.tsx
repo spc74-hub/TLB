@@ -36,6 +36,7 @@ interface DatosEnvio {
   codigoPostal: string;
   provincia: string;
   notas: string;
+  aceptaMarketing: boolean;
 }
 
 export function Checkout() {
@@ -55,6 +56,7 @@ export function Checkout() {
     codigoPostal: "",
     provincia: "",
     notas: "",
+    aceptaMarketing: false,
   });
 
   const envioGratis = total >= ENVIO_GRATIS_MINIMO;
@@ -135,6 +137,7 @@ export function Checkout() {
         codigo_postal: datosEnvio.codigoPostal,
         provincia: datosEnvio.provincia,
         notas: datosEnvio.notas,
+        acepta_marketing: datosEnvio.aceptaMarketing,
       };
 
       // Crear sesión de checkout
@@ -315,6 +318,28 @@ export function Checkout() {
                     value={datosEnvio.notas}
                     onChange={handleInputChange}
                   />
+                </div>
+
+                {/* Opt-in Marketing */}
+                <div className="flex items-start space-x-3 pt-2">
+                  <input
+                    type="checkbox"
+                    id="acepta-marketing"
+                    checked={datosEnvio.aceptaMarketing}
+                    onChange={(e) =>
+                      setDatosEnvio((prev) => ({
+                        ...prev,
+                        aceptaMarketing: e.target.checked,
+                      }))
+                    }
+                    className="mt-1 h-4 w-4 rounded border-crudo-300 text-salvia-600 focus:ring-salvia-500"
+                  />
+                  <label
+                    htmlFor="acepta-marketing"
+                    className="text-sm text-carbon-600 cursor-pointer"
+                  >
+                    Acepto recibir comunicaciones comerciales y promociones de The Lobby Beauty
+                  </label>
                 </div>
               </CardContent>
             </Card>

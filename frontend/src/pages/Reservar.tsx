@@ -74,6 +74,7 @@ export function Reservar() {
     email: "",
     telefono: "",
     notas: "",
+    aceptaMarketing: false,
   });
   const [reservaConfirmada, setReservaConfirmada] = useState(false);
   const [reservaId, setReservaId] = useState<number | null>(null);
@@ -259,6 +260,7 @@ export function Reservar() {
         notas: datosCliente.notas || undefined,
         precio_total: servicioSeleccionado.precio_oferta || servicioSeleccionado.precio,
         usuario_id: user?.id,
+        acepta_marketing: datosCliente.aceptaMarketing,
       });
 
       setReservaId(reserva.id);
@@ -283,6 +285,7 @@ export function Reservar() {
       email: user?.email || "",
       telefono: perfil?.telefono || "",
       notas: "",
+      aceptaMarketing: false,
     });
     setReservaConfirmada(false);
     setReservaId(null);
@@ -722,6 +725,28 @@ export function Reservar() {
                         className="border-crudo-300 resize-none"
                         rows={3}
                       />
+                    </div>
+
+                    {/* Opt-in Marketing */}
+                    <div className="flex items-start space-x-3 py-2">
+                      <input
+                        type="checkbox"
+                        id="acepta-marketing"
+                        checked={datosCliente.aceptaMarketing}
+                        onChange={(e) =>
+                          setDatosCliente({
+                            ...datosCliente,
+                            aceptaMarketing: e.target.checked,
+                          })
+                        }
+                        className="mt-1 h-4 w-4 rounded border-crudo-300 text-salvia-600 focus:ring-salvia-500"
+                      />
+                      <label
+                        htmlFor="acepta-marketing"
+                        className="text-sm text-carbon-600 cursor-pointer"
+                      >
+                        Acepto recibir comunicaciones comerciales y promociones de The Lobby Beauty
+                      </label>
                     </div>
 
                     {/* Total */}
