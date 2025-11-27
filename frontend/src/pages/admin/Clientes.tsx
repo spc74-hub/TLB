@@ -59,7 +59,8 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001";
+const API_URL = `${API_BASE}/api/v1`;
 
 // Tipos
 type OrigenCliente = "web" | "tienda" | "importacion" | "manual" | "reserva" | "pedido";

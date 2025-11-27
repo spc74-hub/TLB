@@ -547,6 +547,26 @@ async def obtener_estadisticas():
         float(m["importe"]) for m in movimientos_hoy.data if m["tipo"] == "gasto"
     )
 
+    # Movimientos del mes actual
+    hoy = date.today()
+    inicio_mes = date(hoy.year, hoy.month, 1)
+    mes_inicio = datetime.combine(inicio_mes, datetime.min.time())
+
+    movimientos_mes = (
+        supabase.table("cash_movements")
+        .select("tipo, importe")
+        .gte("fecha", mes_inicio.isoformat())
+        .lte("fecha", hoy_fin.isoformat())
+        .execute()
+    )
+
+    ingresos_mes = sum(
+        float(m["importe"]) for m in movimientos_mes.data if m["tipo"] == "ingreso"
+    )
+    gastos_mes = sum(
+        float(m["importe"]) for m in movimientos_mes.data if m["tipo"] == "gasto"
+    )
+
     # Último cierre
     ultimo_cierre = (
         supabase.table("cash_closings")
@@ -563,6 +583,9 @@ async def obtener_estadisticas():
         ingresos_hoy=ingresos_hoy,
         gastos_hoy=gastos_hoy,
         movimientos_hoy=len(movimientos_hoy.data),
+        ingresos_mes=ingresos_mes,
+        gastos_mes=gastos_mes,
+        num_movimientos_mes=len(movimientos_mes.data),
         ultimo_cierre=ultimo_cierre.data[0]["fecha"] if ultimo_cierre.data else None,
     )
 

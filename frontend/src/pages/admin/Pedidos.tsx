@@ -9,6 +9,10 @@ import {
   Eye,
   MapPin,
   Phone,
+  Banknote,
+  CreditCard,
+  Wallet,
+  Building2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -35,12 +39,30 @@ import {
 } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Label } from "@/components/ui/label";
 import {
   getAllPedidos,
   actualizarEstadoPedido,
   type Pedido,
   type EstadoPedido,
 } from "@/lib/supabase";
+
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1";
+
+type MetodoCobro = "efectivo" | "transferencia" | "tarjeta_online" | "tpv";
+
+interface PedidoConCobro extends Pedido {
+  cobrado?: boolean;
+  fecha_cobro?: string;
+  metodo_cobro_tipo?: MetodoCobro | null;
+}
+
+const METODOS_COBRO: { valor: MetodoCobro; nombre: string; icon: React.ReactNode }[] = [
+  { valor: "efectivo", nombre: "Efectivo", icon: <Banknote className="h-4 w-4" /> },
+  { valor: "tarjeta_online", nombre: "Tarjeta Online", icon: <CreditCard className="h-4 w-4" /> },
+  { valor: "tpv", nombre: "TPV/Datafono", icon: <Wallet className="h-4 w-4" /> },
+  { valor: "transferencia", nombre: "Transferencia", icon: <Building2 className="h-4 w-4" /> },
+];
 
 const ESTADOS: { valor: EstadoPedido; nombre: string; color: string; icon: React.ReactNode }[] = [
   { valor: "pendiente", nombre: "Pendiente", color: "bg-amber-100 text-amber-700", icon: <Clock className="h-3 w-3" /> },
@@ -52,12 +74,18 @@ const ESTADOS: { valor: EstadoPedido; nombre: string; color: string; icon: React
 ];
 
 export function Pedidos() {
-  const [pedidos, setPedidos] = useState<Pedido[]>([]);
+  const [pedidos, setPedidos] = useState<PedidoConCobro[]>([]);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroEstado, setFiltroEstado] = useState<string>("todos");
-  const [pedidoDetalle, setPedidoDetalle] = useState<Pedido | null>(null);
+  const [pedidoDetalle, setPedidoDetalle] = useState<PedidoConCobro | null>(null);
   const [actualizando, setActualizando] = useState(false);
+
+  // Estados para modal de cobro
+  const [modalCobroOpen, setModalCobroOpen] = useState(false);
+  const [pedidoACobrar, setPedidoACobrar] = useState<PedidoConCobro | null>(null);
+  const [metodoCobro, setMetodoCobro] = useState<MetodoCobro>("efectivo");
+  const [registrandoCobro, setRegistrandoCobro] = useState(false);
 
   useEffect(() => {
     cargarPedidos();
@@ -67,11 +95,63 @@ export function Pedidos() {
     try {
       setLoading(true);
       const data = await getAllPedidos();
-      setPedidos(data);
+      setPedidos(data as PedidoConCobro[]);
     } catch (error) {
       console.error("Error cargando pedidos:", error);
     } finally {
       setLoading(false);
+    }
+  };
+
+  const abrirModalCobro = (pedido: PedidoConCobro) => {
+    setPedidoACobrar(pedido);
+    setMetodoCobro("efectivo");
+    setModalCobroOpen(true);
+  };
+
+  const cerrarModalCobro = () => {
+    setModalCobroOpen(false);
+    setPedidoACobrar(null);
+  };
+
+  const registrarCobro = async () => {
+    if (!pedidoACobrar) return;
+
+    try {
+      setRegistrandoCobro(true);
+      const response = await fetch(`${API_URL}/pedidos/${pedidoACobrar.id}/cobro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ metodo_cobro: metodoCobro }),
+      });
+
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.detail || "Error al registrar cobro");
+      }
+
+      // Actualizar pedido localmente
+      setPedidos((prev) =>
+        prev.map((p) =>
+          p.id === pedidoACobrar.id
+            ? { ...p, cobrado: true, metodo_cobro_tipo: metodoCobro, fecha_cobro: new Date().toISOString() }
+            : p
+        )
+      );
+
+      // Actualizar detalle si está abierto
+      if (pedidoDetalle?.id === pedidoACobrar.id) {
+        setPedidoDetalle((prev) =>
+          prev ? { ...prev, cobrado: true, metodo_cobro_tipo: metodoCobro, fecha_cobro: new Date().toISOString() } : null
+        );
+      }
+
+      cerrarModalCobro();
+    } catch (error) {
+      console.error("Error registrando cobro:", error);
+      alert(error instanceof Error ? error.message : "Error al registrar cobro");
+    } finally {
+      setRegistrandoCobro(false);
     }
   };
 
@@ -205,6 +285,7 @@ export function Pedidos() {
                   <TableHead>Fecha</TableHead>
                   <TableHead>Cliente</TableHead>
                   <TableHead>Estado</TableHead>
+                  <TableHead className="text-center">Cobrado</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Acciones</TableHead>
                 </TableRow>
@@ -212,13 +293,14 @@ export function Pedidos() {
               <TableBody>
                 {pedidosFiltrados.length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-8 text-carbon-500">
+                    <TableCell colSpan={7} className="text-center py-8 text-carbon-500">
                       No hay pedidos que coincidan con los filtros
                     </TableCell>
                   </TableRow>
                 ) : (
                   pedidosFiltrados.map((pedido) => {
                     const estadoConfig = getEstadoConfig(pedido.estado);
+                    const metodoCobrado = METODOS_COBRO.find(m => m.valor === pedido.metodo_cobro_tipo);
                     return (
                       <TableRow key={pedido.id} className="hover:bg-crudo-50">
                         <TableCell className="font-medium">#{pedido.id}</TableCell>
@@ -264,6 +346,28 @@ export function Pedidos() {
                               ))}
                             </SelectContent>
                           </Select>
+                        </TableCell>
+                        <TableCell className="text-center">
+                          {pedido.cobrado ? (
+                            <Badge className="bg-green-100 text-green-700 flex items-center gap-1 justify-center">
+                              {metodoCobrado?.icon || <CheckCircle2 className="h-3 w-3" />}
+                              {metodoCobrado?.nombre || "Cobrado"}
+                            </Badge>
+                          ) : pedido.estado === "cancelado" ? (
+                            <Badge variant="outline" className="text-carbon-400">
+                              -
+                            </Badge>
+                          ) : (
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="text-amber-600 border-amber-300 hover:bg-amber-50"
+                              onClick={() => abrirModalCobro(pedido)}
+                            >
+                              <Banknote className="h-3 w-3 mr-1" />
+                              Cobrar
+                            </Button>
+                          )}
                         </TableCell>
                         <TableCell className="text-right font-bold">
                           {pedido.total.toFixed(2)}€
@@ -420,12 +524,142 @@ export function Pedidos() {
                 </div>
               </div>
 
+              {/* Estado de cobro */}
+              <div className="bg-crudo-50 p-4 rounded-lg">
+                <h3 className="font-semibold text-carbon-800 mb-3 flex items-center gap-2">
+                  <Banknote className="h-4 w-4 text-salvia-600" />
+                  Estado de Cobro
+                </h3>
+                {pedidoDetalle.cobrado ? (
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-green-100 text-green-700">
+                      <CheckCircle2 className="h-3 w-3 mr-1" />
+                      Cobrado
+                    </Badge>
+                    <span className="text-sm text-carbon-600">
+                      {METODOS_COBRO.find(m => m.valor === pedidoDetalle.metodo_cobro_tipo)?.nombre || pedidoDetalle.metodo_cobro_tipo}
+                    </span>
+                    {pedidoDetalle.fecha_cobro && (
+                      <span className="text-xs text-carbon-400">
+                        ({new Date(pedidoDetalle.fecha_cobro).toLocaleDateString("es-ES")})
+                      </span>
+                    )}
+                  </div>
+                ) : pedidoDetalle.estado === "cancelado" ? (
+                  <Badge variant="outline" className="text-carbon-400">No aplica</Badge>
+                ) : (
+                  <div className="flex items-center gap-2">
+                    <Badge className="bg-amber-100 text-amber-700">
+                      <Clock className="h-3 w-3 mr-1" />
+                      Pendiente de cobro
+                    </Badge>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        setPedidoDetalle(null);
+                        abrirModalCobro(pedidoDetalle);
+                      }}
+                    >
+                      <Banknote className="h-3 w-3 mr-1" />
+                      Registrar Cobro
+                    </Button>
+                  </div>
+                )}
+              </div>
+
               {/* Stripe ID */}
               {pedidoDetalle.stripe_payment_id && (
                 <div className="text-xs text-carbon-400">
                   Stripe Payment ID: {pedidoDetalle.stripe_payment_id}
                 </div>
               )}
+            </div>
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal de Cobro */}
+      <Dialog open={modalCobroOpen} onOpenChange={(open) => !open && cerrarModalCobro()}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <Banknote className="h-5 w-5 text-salvia-600" />
+              Registrar Cobro
+            </DialogTitle>
+          </DialogHeader>
+
+          {pedidoACobrar && (
+            <div className="space-y-6">
+              {/* Info del pedido */}
+              <div className="bg-crudo-50 p-4 rounded-lg">
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-carbon-500">Pedido</span>
+                  <span className="font-bold">#{pedidoACobrar.id}</span>
+                </div>
+                <div className="flex justify-between items-center mb-2">
+                  <span className="text-sm text-carbon-500">Cliente</span>
+                  <span className="font-medium">{pedidoACobrar.nombre_envio || "Sin nombre"}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-sm text-carbon-500">Importe</span>
+                  <span className="text-lg font-bold text-salvia-600">
+                    {pedidoACobrar.total.toFixed(2)}€
+                  </span>
+                </div>
+              </div>
+
+              {/* Selección de método de cobro */}
+              <div className="space-y-2">
+                <Label>Método de cobro</Label>
+                <div className="grid grid-cols-2 gap-2">
+                  {METODOS_COBRO.map((metodo) => (
+                    <Button
+                      key={metodo.valor}
+                      type="button"
+                      variant={metodoCobro === metodo.valor ? "default" : "outline"}
+                      className={`h-auto py-3 flex flex-col items-center gap-1 ${
+                        metodoCobro === metodo.valor
+                          ? "bg-salvia-500 hover:bg-salvia-600 text-white"
+                          : "hover:bg-salvia-50"
+                      }`}
+                      onClick={() => setMetodoCobro(metodo.valor)}
+                    >
+                      {metodo.icon}
+                      <span className="text-xs">{metodo.nombre}</span>
+                    </Button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Botones */}
+              <div className="flex gap-2 justify-end">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={cerrarModalCobro}
+                  disabled={registrandoCobro}
+                >
+                  Cancelar
+                </Button>
+                <Button
+                  onClick={registrarCobro}
+                  disabled={registrandoCobro}
+                  className="bg-salvia-500 hover:bg-salvia-600"
+                >
+                  {registrandoCobro ? (
+                    <>
+                      <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                      Registrando...
+                    </>
+                  ) : (
+                    <>
+                      <CheckCircle2 className="h-4 w-4 mr-2" />
+                      Confirmar Cobro
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           )}
         </DialogContent>

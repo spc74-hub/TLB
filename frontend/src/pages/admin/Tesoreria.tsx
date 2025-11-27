@@ -17,6 +17,9 @@ import {
   Eye,
   Lock,
   CheckCircle2,
+  Clock,
+  ShoppingBag,
+  AlertCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -48,7 +51,8 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001";
+const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001";
+const API_URL = `${API_BASE}/api/v1`;
 
 // Tipos
 interface CuentaCaja {
@@ -115,6 +119,29 @@ interface PLData {
   margen: number;
 }
 
+interface PedidoPendienteCobro {
+  id: number;
+  nombre_envio: string;
+  total: number;
+  estado: string;
+  metodo_pago: string;
+  stripe_payment_id: string | null;
+  created_at: string;
+  cobrado: boolean;
+  metodo_cobro_tipo: string | null;
+  tipo_cobro_esperado: string;
+}
+
+interface CobroStats {
+  total_pedidos: number;
+  total_ventas: number;
+  cobrados: number;
+  total_cobrado: number;
+  pendientes_cobro: number;
+  total_pendiente: number;
+  por_metodo_cobro: Record<string, { count: number; total: number }>;
+}
+
 const TIPOS_CUENTA = [
   { valor: "efectivo", nombre: "Efectivo", icon: Banknote },
   { valor: "banco", nombre: "Banco", icon: Building },
@@ -127,10 +154,21 @@ export function Tesoreria() {
   const [cierres, setCierres] = useState<CierreCaja[]>([]);
   const [stats, setStats] = useState<CashStats | null>(null);
   const [plData, setPLData] = useState<PLData | null>(null);
+  const [pedidosPendientes, setPedidosPendientes] = useState<PedidoPendienteCobro[]>([]);
+  const [cobroStats, setCobroStats] = useState<CobroStats | null>(null);
   const [loading, setLoading] = useState(true);
   const [busqueda, setBusqueda] = useState("");
   const [filtroCuenta, setFiltroCuenta] = useState<string>("todas");
   const [filtroTipo, setFiltroTipo] = useState<string>("todos");
+
+  // Modal cobro
+  const [modalCobroOpen, setModalCobroOpen] = useState(false);
+  const [pedidoACobrar, setPedidoACobrar] = useState<PedidoPendienteCobro | null>(null);
+  const [formCobro, setFormCobro] = useState({
+    metodo_cobro: "efectivo",
+    cuenta_id: "",
+  });
+  const [registrandoCobro, setRegistrandoCobro] = useState(false);
 
   // Modal estados
   const [modalCuentaOpen, setModalCuentaOpen] = useState(false);
@@ -178,12 +216,18 @@ export function Tesoreria() {
   const cargarDatos = async () => {
     try {
       setLoading(true);
-      const [cuentasRes, movimientosRes, cierresRes, statsRes, plRes] = await Promise.all([
+      // Obtener el periodo actual en formato YYYY-MM
+      const now = new Date();
+      const periodo = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
+
+      const [cuentasRes, movimientosRes, cierresRes, statsRes, plRes, pendientesRes, cobroStatsRes] = await Promise.all([
         fetch(`${API_URL}/tesoreria/cuentas`),
         fetch(`${API_URL}/tesoreria/movimientos`),
         fetch(`${API_URL}/tesoreria/cierres`),
         fetch(`${API_URL}/tesoreria/stats`),
-        fetch(`${API_URL}/tesoreria/pl`),
+        fetch(`${API_URL}/tesoreria/pl?periodo=${periodo}`),
+        fetch(`${API_URL}/pedidos/pendientes-cobro`),
+        fetch(`${API_URL}/pedidos/stats-cobro`),
       ]);
 
       if (cuentasRes.ok) {
@@ -208,6 +252,14 @@ export function Tesoreria() {
       if (plRes.ok) {
         const data = await plRes.json();
         setPLData(data);
+      }
+      if (pendientesRes.ok) {
+        const data = await pendientesRes.json();
+        setPedidosPendientes(Array.isArray(data) ? data : []);
+      }
+      if (cobroStatsRes.ok) {
+        const data = await cobroStatsRes.json();
+        setCobroStats(data);
       }
     } catch (error) {
       console.error("Error cargando datos:", error);
@@ -343,6 +395,47 @@ export function Tesoreria() {
     setFormCierre({ cuenta_id: "", balance_real: "", notas: "" });
   };
 
+  const abrirModalCobro = (pedido: PedidoPendienteCobro) => {
+    setPedidoACobrar(pedido);
+    setFormCobro({ metodo_cobro: "efectivo", cuenta_id: "" });
+    setModalCobroOpen(true);
+  };
+
+  const cerrarModalCobro = () => {
+    setModalCobroOpen(false);
+    setPedidoACobrar(null);
+    setFormCobro({ metodo_cobro: "efectivo", cuenta_id: "" });
+  };
+
+  const registrarCobro = async () => {
+    if (!pedidoACobrar) return;
+
+    try {
+      setRegistrandoCobro(true);
+      const response = await fetch(`${API_URL}/pedidos/${pedidoACobrar.id}/cobro`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          metodo_cobro: formCobro.metodo_cobro,
+          cuenta_id: formCobro.cuenta_id ? parseInt(formCobro.cuenta_id) : null,
+        }),
+      });
+
+      if (response.ok) {
+        await cargarDatos();
+        cerrarModalCobro();
+      } else {
+        const error = await response.json();
+        alert(error.detail || "Error al registrar cobro");
+      }
+    } catch (error) {
+      console.error("Error registrando cobro:", error);
+      alert("Error al registrar cobro");
+    } finally {
+      setRegistrandoCobro(false);
+    }
+  };
+
   // Filtrar movimientos
   const movimientosFiltrados = movimientos.filter((mov) => {
     const matchBusqueda = mov.concepto.toLowerCase().includes(busqueda.toLowerCase());
@@ -396,8 +489,8 @@ export function Tesoreria() {
         </div>
       </div>
 
-      {/* Stats generales */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+      {/* Stats generales - Flujo de Caja */}
+      <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-4">
         <Card className="border-crudo-200">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-2">
@@ -412,8 +505,8 @@ export function Tesoreria() {
         <Card className="border-crudo-200">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingUp className="h-4 w-4 text-green-500" />
-              <span className="text-sm text-carbon-500">Ingresos Mes</span>
+              <ArrowDownLeft className="h-4 w-4 text-green-500" />
+              <span className="text-sm text-carbon-500">Cobros Mes</span>
             </div>
             <div className="text-2xl font-bold text-green-600">
               +{stats?.ingresos_mes?.toFixed(2) || "0.00"}€
@@ -423,11 +516,39 @@ export function Tesoreria() {
         <Card className="border-crudo-200">
           <CardContent className="pt-4">
             <div className="flex items-center gap-2 mb-2">
-              <TrendingDown className="h-4 w-4 text-red-500" />
-              <span className="text-sm text-carbon-500">Gastos Mes</span>
+              <ArrowUpRight className="h-4 w-4 text-red-500" />
+              <span className="text-sm text-carbon-500">Pagos Mes</span>
             </div>
             <div className="text-2xl font-bold text-red-600">
               -{stats?.gastos_mes?.toFixed(2) || "0.00"}€
+            </div>
+          </CardContent>
+        </Card>
+        <Card className={`border-crudo-200 ${(cobroStats?.pendientes_cobro || 0) > 0 ? "border-amber-300 bg-amber-50/30" : ""}`}>
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <Clock className="h-4 w-4 text-amber-500" />
+              <span className="text-sm text-carbon-500">Pte. Cobrar</span>
+            </div>
+            <div className="text-2xl font-bold text-amber-600">
+              {cobroStats?.total_pendiente?.toFixed(2) || "0.00"}€
+            </div>
+            <div className="text-xs text-carbon-500">
+              {cobroStats?.pendientes_cobro || 0} pedidos
+            </div>
+          </CardContent>
+        </Card>
+        <Card className="border-crudo-200">
+          <CardContent className="pt-4">
+            <div className="flex items-center gap-2 mb-2">
+              <AlertCircle className="h-4 w-4 text-orange-500" />
+              <span className="text-sm text-carbon-500">Pte. Pagar</span>
+            </div>
+            <div className="text-2xl font-bold text-orange-600">
+              0.00€
+            </div>
+            <div className="text-xs text-carbon-500">
+              0 gastos
             </div>
           </CardContent>
         </Card>
@@ -487,6 +608,14 @@ export function Tesoreria() {
       <Tabs defaultValue="movimientos" className="space-y-4">
         <TabsList>
           <TabsTrigger value="movimientos">Movimientos</TabsTrigger>
+          <TabsTrigger value="pendientes" className="relative">
+            Pendientes Cobro
+            {pedidosPendientes.length > 0 && (
+              <span className="ml-2 bg-amber-500 text-white text-xs rounded-full px-2 py-0.5">
+                {pedidosPendientes.length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="cierres">Cierres de Caja</TabsTrigger>
           <TabsTrigger value="pl">P&L Dashboard</TabsTrigger>
         </TabsList>
@@ -619,6 +748,160 @@ export function Tesoreria() {
               </div>
             </CardContent>
           </Card>
+        </TabsContent>
+
+        {/* Tab Pendientes de Cobro */}
+        <TabsContent value="pendientes">
+          <div className="space-y-6">
+            {/* Stats de cobro */}
+            {cobroStats && (
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                <Card className="border-crudo-200">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <ShoppingBag className="h-4 w-4 text-blue-500" />
+                      <span className="text-sm text-carbon-500">Total Ventas</span>
+                    </div>
+                    <div className="text-2xl font-bold text-carbon-800">
+                      {cobroStats.total_ventas.toFixed(2)}€
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-crudo-200">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <CheckCircle2 className="h-4 w-4 text-green-500" />
+                      <span className="text-sm text-carbon-500">Cobrado</span>
+                    </div>
+                    <div className="text-2xl font-bold text-green-600">
+                      {cobroStats.total_cobrado.toFixed(2)}€
+                    </div>
+                    <div className="text-xs text-carbon-500 mt-1">
+                      {cobroStats.cobrados} pedidos
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-crudo-200 border-amber-300">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Clock className="h-4 w-4 text-amber-500" />
+                      <span className="text-sm text-carbon-500">Pendiente</span>
+                    </div>
+                    <div className="text-2xl font-bold text-amber-600">
+                      {cobroStats.total_pendiente.toFixed(2)}€
+                    </div>
+                    <div className="text-xs text-carbon-500 mt-1">
+                      {cobroStats.pendientes_cobro} pedidos
+                    </div>
+                  </CardContent>
+                </Card>
+                <Card className="border-crudo-200">
+                  <CardContent className="pt-4">
+                    <div className="flex items-center gap-2 mb-2">
+                      <Euro className="h-4 w-4 text-salvia-500" />
+                      <span className="text-sm text-carbon-500">% Cobrado</span>
+                    </div>
+                    <div className="text-2xl font-bold text-carbon-800">
+                      {cobroStats.total_ventas > 0
+                        ? ((cobroStats.total_cobrado / cobroStats.total_ventas) * 100).toFixed(1)
+                        : 0}%
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
+            )}
+
+            {/* Lista de pedidos pendientes de cobro */}
+            <Card className="border-crudo-200">
+              <CardHeader>
+                <CardTitle className="flex items-center gap-2 text-lg">
+                  <AlertCircle className="h-5 w-5 text-amber-500" />
+                  Pedidos Pendientes de Cobro
+                </CardTitle>
+              </CardHeader>
+              <CardContent>
+                <div className="border border-crudo-200 rounded-lg overflow-hidden">
+                  <Table>
+                    <TableHeader>
+                      <TableRow className="bg-crudo-50">
+                        <TableHead>Pedido</TableHead>
+                        <TableHead>Cliente</TableHead>
+                        <TableHead>Fecha</TableHead>
+                        <TableHead>Estado</TableHead>
+                        <TableHead>Tipo Esperado</TableHead>
+                        <TableHead className="text-right">Importe</TableHead>
+                        <TableHead className="text-right">Acciones</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {pedidosPendientes.length === 0 ? (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center py-8 text-carbon-500">
+                            <CheckCircle2 className="h-8 w-8 mx-auto mb-2 text-green-500" />
+                            No hay pedidos pendientes de cobro
+                          </TableCell>
+                        </TableRow>
+                      ) : (
+                        pedidosPendientes.map((pedido) => (
+                          <TableRow key={pedido.id} className="hover:bg-crudo-50">
+                            <TableCell>
+                              <span className="font-mono font-medium">#{pedido.id}</span>
+                            </TableCell>
+                            <TableCell>
+                              {pedido.nombre_envio || "Sin nombre"}
+                            </TableCell>
+                            <TableCell>
+                              <div className="flex items-center gap-2">
+                                <Calendar className="h-4 w-4 text-carbon-400" />
+                                {new Date(pedido.created_at).toLocaleDateString("es-ES")}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                className={
+                                  pedido.estado === "pagado"
+                                    ? "bg-blue-100 text-blue-700"
+                                    : pedido.estado === "preparando"
+                                    ? "bg-amber-100 text-amber-700"
+                                    : "bg-gray-100 text-gray-700"
+                                }
+                              >
+                                {pedido.estado}
+                              </Badge>
+                            </TableCell>
+                            <TableCell>
+                              <Badge
+                                variant="outline"
+                                className={
+                                  pedido.stripe_payment_id
+                                    ? "border-blue-300 text-blue-700"
+                                    : "border-amber-300 text-amber-700"
+                                }
+                              >
+                                {pedido.tipo_cobro_esperado}
+                              </Badge>
+                            </TableCell>
+                            <TableCell className="text-right font-bold text-carbon-800">
+                              {pedido.total.toFixed(2)}€
+                            </TableCell>
+                            <TableCell className="text-right">
+                              <Button
+                                size="sm"
+                                onClick={() => abrirModalCobro(pedido)}
+                              >
+                                <Euro className="h-4 w-4 mr-1" />
+                                Cobrar
+                              </Button>
+                            </TableCell>
+                          </TableRow>
+                        ))
+                      )}
+                    </TableBody>
+                  </Table>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
         </TabsContent>
 
         {/* Tab Cierres */}
@@ -1246,6 +1529,125 @@ export function Tesoreria() {
               )}
             </div>
           )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Modal Registrar Cobro */}
+      <Dialog open={modalCobroOpen} onOpenChange={(open) => !open && cerrarModalCobro()}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle>Registrar Cobro</DialogTitle>
+          </DialogHeader>
+
+          {pedidoACobrar && (
+            <div className="space-y-4">
+              {/* Info del pedido */}
+              <div className="bg-crudo-50 p-4 rounded-lg">
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <div className="text-sm text-carbon-500">Pedido</div>
+                    <div className="font-bold">#{pedidoACobrar.id}</div>
+                  </div>
+                  <div>
+                    <div className="text-sm text-carbon-500">Importe</div>
+                    <div className="text-xl font-bold text-green-600">
+                      {pedidoACobrar.total.toFixed(2)}€
+                    </div>
+                  </div>
+                  <div className="col-span-2">
+                    <div className="text-sm text-carbon-500">Cliente</div>
+                    <div className="font-medium">
+                      {pedidoACobrar.nombre_envio || "Sin nombre"}
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Método de cobro */}
+              <div>
+                <Label htmlFor="cobro_metodo">Método de Cobro *</Label>
+                <Select
+                  value={formCobro.metodo_cobro}
+                  onValueChange={(value) =>
+                    setFormCobro({ ...formCobro, metodo_cobro: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="efectivo">
+                      <div className="flex items-center gap-2">
+                        <Banknote className="h-4 w-4" />
+                        Efectivo
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="tarjeta_online">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        Tarjeta Online (Stripe)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="tpv">
+                      <div className="flex items-center gap-2">
+                        <CreditCard className="h-4 w-4" />
+                        TPV (Datáfono)
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="transferencia">
+                      <div className="flex items-center gap-2">
+                        <Building className="h-4 w-4" />
+                        Transferencia
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              {/* Cuenta destino (opcional) */}
+              <div>
+                <Label htmlFor="cobro_cuenta">Cuenta de Destino (opcional)</Label>
+                <Select
+                  value={formCobro.cuenta_id}
+                  onValueChange={(value) =>
+                    setFormCobro({ ...formCobro, cuenta_id: value })
+                  }
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Automática según método" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="">Automática según método</SelectItem>
+                    {cuentas.map((cuenta) => (
+                      <SelectItem key={cuenta.id} value={cuenta.id.toString()}>
+                        {cuenta.nombre} ({cuenta.balance_actual.toFixed(2)}€)
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-carbon-500 mt-1">
+                  Si no seleccionas cuenta, se usará la cuenta por defecto según el método
+                </p>
+              </div>
+            </div>
+          )}
+
+          <DialogFooter>
+            <Button variant="outline" onClick={cerrarModalCobro}>
+              Cancelar
+            </Button>
+            <Button
+              onClick={registrarCobro}
+              disabled={registrandoCobro || !pedidoACobrar}
+            >
+              {registrandoCobro ? (
+                <Loader2 className="h-4 w-4 animate-spin mr-2" />
+              ) : (
+                <CheckCircle2 className="h-4 w-4 mr-2" />
+              )}
+              Confirmar Cobro
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
     </div>

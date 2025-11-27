@@ -1,0 +1,13 @@
+anio;mes;tipo;categoria_codigo;categoria_nombre;importe;concepto
+2024;1;ingreso;ING_SERVICIOS;Ingresos por Servicios;8500.00;Servicios Enero 2024
+2024;1;ingreso;ING_PRODUCTOS;Venta de Productos;1200.00;Venta productos Enero 2024
+2024;1;gasto;GAST_NOMINAS;Nóminas y SS;4500.00;Nóminas Enero 2024
+2024;1;gasto;GAST_ALQUILER;Alquiler;1800.00;Alquiler local Enero 2024
+2024;1;gasto;GAST_SUMINISTROS;Suministros;350.00;Luz, agua, internet Enero 2024
+2024;1;gasto;GAST_PRODUCTOS;Compra de Productos;800.00;Reposición productos Enero 2024
+2024;2;ingreso;ING_SERVICIOS;Ingresos por Servicios;9200.00;Servicios Febrero 2024
+2024;2;ingreso;ING_PRODUCTOS;Venta de Productos;1350.00;Venta productos Febrero 2024
+2024;2;gasto;GAST_NOMINAS;Nóminas y SS;4500.00;Nóminas Febrero 2024
+2024;2;gasto;GAST_ALQUILER;Alquiler;1800.00;Alquiler local Febrero 2024
+2024;2;gasto;GAST_SUMINISTROS;Suministros;320.00;Luz, agua, internet Febrero 2024
+2024;2;gasto;GAST_MARKETING;Marketing y Publicidad;500.00;Campaña redes sociales Febrero 2024

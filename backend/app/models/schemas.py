@@ -941,6 +941,9 @@ class CashStats(BaseModel):
     ingresos_hoy: float = 0.00
     gastos_hoy: float = 0.00
     movimientos_hoy: int = 0
+    ingresos_mes: float = 0.00
+    gastos_mes: float = 0.00
+    num_movimientos_mes: int = 0
     ultimo_cierre: Optional[date] = None
 
 

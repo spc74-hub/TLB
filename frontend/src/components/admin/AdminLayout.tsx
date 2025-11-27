@@ -14,6 +14,8 @@ import {
   UserCircle,
   Receipt,
   Wallet,
+  BarChart3,
+  TrendingUp,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -56,6 +58,11 @@ const menuItems = [
     icon: UserCircle,
   },
   {
+    title: "Ingresos",
+    href: "/admin/ingresos",
+    icon: TrendingUp,
+  },
+  {
     title: "Gastos",
     href: "/admin/gastos",
     icon: Receipt,
@@ -64,6 +71,11 @@ const menuItems = [
     title: "Tesorería",
     href: "/admin/tesoreria",
     icon: Wallet,
+  },
+  {
+    title: "Cuenta Resultados",
+    href: "/admin/cuenta-resultados",
+    icon: BarChart3,
   },
   {
     title: "Configuración",

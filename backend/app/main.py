@@ -11,7 +11,7 @@ from contextlib import asynccontextmanager
 
 from app.core.config import get_settings
 from app.core.database import init_supabase
-from app.routers import servicios, reservas, productos, pagos, pedidos, whatsapp, clientes, gastos, tesoreria
+from app.routers import servicios, reservas, productos, pagos, pedidos, whatsapp, clientes, gastos, tesoreria, cuenta_resultados, ingresos
 
 
 @asynccontextmanager
@@ -76,6 +76,8 @@ app.include_router(whatsapp.router, prefix="/api/v1")
 app.include_router(clientes.router, prefix="/api/v1")
 app.include_router(gastos.router, prefix="/api/v1")
 app.include_router(tesoreria.router, prefix="/api/v1")
+app.include_router(cuenta_resultados.router, prefix="/api/v1")
+app.include_router(ingresos.router, prefix="/api/v1")
 
 
 @app.get("/")
