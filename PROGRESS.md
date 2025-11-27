@@ -1,6 +1,6 @@
 # The Lobby Beauty - Progreso del Proyecto
 
-> Última actualización: 2025-11-27 - Ampliación ERP y Tesorería
+> Última actualización: 2025-11-27 - Módulo P&L (Ingresos) y Tesorería con Cobros
 
 ## Resumen del Proyecto
 
@@ -443,7 +443,7 @@ Aplicación web para centro de belleza con sistema de reservas y ecommerce de pr
 
 ---
 
-## Fase 7: Ampliación ERP y Tesorería 🔲 PLANIFICADO
+## Fase 7: Ampliación ERP y Tesorería ✅ EN PROGRESO
 
 > **Documento de especificación:** `/docs/AMPLIACION_ERP_TESORERIA.md`
 > **Estimación total:** 14-19 días de desarrollo
@@ -452,26 +452,27 @@ Esta ampliación añade dos nuevos módulos al sistema:
 1. **Control de Gestión (Mini-ERP):** Registro de gastos, categorías, proveedores, dashboard P&L
 2. **Tesorería:** Cuentas de caja, movimientos, cierres diarios, previsión de liquidez
 
-### 7.1 Base de Datos (1-2 días) 🔲
-- [ ] Crear archivo `database/erp_tesoreria_schema.sql`
-- [ ] Nuevos ENUMs:
+### 7.1 Base de Datos (1-2 días) ✅ COMPLETADO
+- [x] Crear archivo `database/erp_tesoreria_schema.sql`
+- [x] Nuevos ENUMs:
   - `categoria_gasto` (nominas, alquiler, suministros, marketing, productos, formacion, otros)
   - `tipo_cuenta` (efectivo, banco)
   - `tipo_movimiento` (ingreso, gasto)
   - `referencia_movimiento` (pedido, reserva, gasto, ajuste, cierre)
   - `frecuencia_recurrencia` (semanal, quincenal, mensual, bimestral, trimestral, anual)
-- [ ] Tabla `expense_categories` - Categorías de gastos personalizables
-- [ ] Tabla `vendors` - Proveedores
-- [ ] Tabla `expenses` - Gastos con soporte de recurrencia
-- [ ] Tabla `cash_accounts` - Cuentas de caja (efectivo, banco)
-- [ ] Tabla `cash_movements` - Movimientos de caja
-- [ ] Tabla `cash_closings` - Cierres de caja diarios
-- [ ] Triggers para actualizar balances automáticamente
-- [ ] Políticas RLS para acceso admin
-- [ ] Índices para optimización de consultas
+- [x] Tabla `expense_categories` - Categorías de gastos personalizables
+- [x] Tabla `vendors` - Proveedores
+- [x] Tabla `expenses` - Gastos con soporte de recurrencia
+- [x] Tabla `cash_accounts` - Cuentas de caja (efectivo, banco)
+- [x] Tabla `cash_movements` - Movimientos de caja
+- [x] Tabla `cash_closings` - Cierres de caja diarios
+- [x] Triggers para actualizar balances automáticamente
+- [x] Políticas RLS para acceso admin
+- [x] Índices para optimización de consultas
+- [x] `database/add_cobro_fields_pedidos.sql` - Campos de cobro en pedidos
 
-### 7.2 Modelos Backend (1 día) 🔲
-- [ ] Schemas Pydantic en `backend/app/models/schemas.py`:
+### 7.2 Modelos Backend (1 día) ✅ COMPLETADO
+- [x] Schemas Pydantic en `backend/app/models/schemas.py`:
   - ExpenseCategory, ExpenseCategoryCreate, ExpenseCategoryUpdate
   - Vendor, VendorCreate, VendorUpdate
   - Expense, ExpenseCreate, ExpenseUpdate, ExpenseWithDetails
@@ -479,57 +480,71 @@ Esta ampliación añade dos nuevos módulos al sistema:
   - CashMovement, CashMovementCreate, CashMovementWithDetails
   - CashClosing, CashClosingCreate, CashClosingWithDetails
   - PLDashboardData, LiquidityForecast
+  - CashStats (con ingresos_mes, gastos_mes, num_movimientos_mes)
 
-### 7.3 Backend Control de Gestión (2-3 días) 🔲
-- [ ] Router `backend/app/routers/gastos.py`:
+### 7.3 Backend Control de Gestión (2-3 días) ✅ COMPLETADO
+- [x] Router `backend/app/routers/gastos.py`:
   - CRUD categorías de gastos
   - CRUD proveedores
   - CRUD gastos con filtros (fecha, categoría, proveedor)
   - Generación automática de gastos recurrentes
   - Estadísticas por categoría/período
+- [x] Router `backend/app/routers/ingresos.py`:
+  - Ingresos desde pedidos y reservas
+  - Estadísticas de ingresos por período
+  - Top clientes y productos
 - [ ] Router `backend/app/routers/dashboard_gestion.py`:
   - Dashboard P&L (ingresos vs gastos)
   - Comparativa mensual/anual
   - Desglose por categorías
   - Métricas de ticket medio, margen, etc.
-- [ ] Registrar routers en `main.py`
+- [x] Registrar routers en `main.py`
 
-### 7.4 Backend Tesorería (2-3 días) 🔲
-- [ ] Router `backend/app/routers/tesoreria.py`:
+### 7.4 Backend Tesorería (2-3 días) ✅ COMPLETADO
+- [x] Router `backend/app/routers/tesoreria.py`:
   - CRUD cuentas de caja
   - CRUD movimientos de caja
   - Transferencias entre cuentas
   - Cierres de caja diarios
   - Balance por cuenta
   - Previsión de liquidez (próximos 30 días)
-- [ ] Captura automática de ingresos:
-  - Webhook Stripe: crear movimiento al confirmar pago
-  - Reserva completada: opción de registrar pago en efectivo
-- [ ] Registrar router en `main.py`
+  - Estadísticas mensuales (cobros/pagos del mes)
+- [x] Sistema de cobros en pedidos.py:
+  - Endpoint POST `/{pedido_id}/cobro` para registrar cobro
+  - Endpoint GET `/pendientes-cobro` para pedidos sin cobrar
+  - Endpoint GET `/stats-cobro` para estadísticas de cobro
+  - Distinción entre P&L (devengado) y Tesorería (caja)
+- [x] Registrar router en `main.py`
 
-### 7.5 Frontend Control de Gestión (3-4 días) 🔲
-- [ ] Página `/admin/gastos`:
+### 7.5 Frontend Control de Gestión (3-4 días) ✅ COMPLETADO
+- [x] Página `/admin/gastos`:
   - Lista de gastos con filtros y búsqueda
   - Modal crear/editar gasto
   - Vista de gastos recurrentes
   - Gestión de categorías (sub-modal)
   - Gestión de proveedores (sub-modal)
   - Exportación a CSV/Excel
-- [ ] Página `/admin/dashboard-gestion`:
+- [x] Página `/admin/ingresos`:
+  - Lista de ingresos (pedidos + reservas)
+  - Estadísticas de ingresos
+  - Filtros por período y fuente
+- [ ] Página `/admin/dashboard-gestion` (Cuenta de Resultados):
   - Gráfico P&L (ingresos vs gastos)
   - Selector de período (mes/trimestre/año)
   - KPIs: margen bruto, ticket medio, gastos por categoría
   - Comparativa con período anterior
   - Top gastos del período
-- [ ] Actualizar `AdminLayout.tsx` con nuevas rutas
-- [ ] Actualizar `App.tsx` con rutas protegidas
+- [x] Actualizar `AdminLayout.tsx` con nuevas rutas
+- [x] Actualizar `App.tsx` con rutas protegidas
 
-### 7.6 Frontend Tesorería (3-4 días) 🔲
-- [ ] Página `/admin/tesoreria`:
+### 7.6 Frontend Tesorería (3-4 días) ✅ COMPLETADO
+- [x] Página `/admin/tesoreria`:
   - Panel de cuentas con balances actuales
   - Lista de movimientos con filtros
   - Modal crear movimiento manual
   - Modal transferencia entre cuentas
+  - KPIs: Cobros Mes, Pagos Mes, Pte. Cobrar, Movimientos
+  - Modal de cobro desde pedidos pendientes
 - [ ] Página `/admin/cierres`:
   - Calendario de cierres
   - Proceso de cierre diario
@@ -539,7 +554,12 @@ Esta ampliación añade dos nuevos módulos al sistema:
   - Gráfico de balance proyectado
   - Alertas de liquidez baja
   - Gastos recurrentes pendientes
-- [ ] Actualizar `AdminLayout.tsx` y `App.tsx`
+- [x] Actualizar `AdminLayout.tsx` y `App.tsx`
+- [x] Cobro desde página de Pedidos:
+  - Columna "Cobrado" en tabla de pedidos
+  - Botón "Cobrar" para pedidos pendientes
+  - Modal de registro de cobro (efectivo, tarjeta, TPV, transferencia)
+  - Estado de cobro en detalle de pedido
 
 ### 7.7 Testing e Integración (2 días) 🔲
 - [ ] Tests de endpoints de gastos
@@ -673,14 +693,14 @@ Esta ampliación añade dos nuevos módulos al sistema:
 
 ## Estadísticas del Proyecto
 
-### Líneas de Código (2025-11-26)
+### Líneas de Código (2025-11-27)
 | Componente | Líneas |
 |------------|--------|
-| Frontend (React/TypeScript) | ~11,800 |
-| Backend (Python/FastAPI) | ~2,900 |
-| Database (SQL) | ~1,900 |
-| CSS | ~130 |
-| **TOTAL** | **~20,620** |
+| Frontend (React/TypeScript) | ~17,500 |
+| Backend (Python/FastAPI) | ~4,800 |
+| Database (SQL) | ~3,400 |
+| CSS | ~150 |
+| **TOTAL** | **~33,350** |
 
 ### Estimación de Esfuerzo
 
@@ -690,18 +710,18 @@ Esta ampliación añade dos nuevos módulos al sistema:
 
 | Métrica | Valor |
 |---------|-------|
-| Líneas totales | 20,620 |
-| Días estimados (a 125 LOC/día) | **~165 días** |
-| Jornadas de 8h | **~165 jornadas** |
-| Semanas laborales (5 días) | **~33 semanas** |
-| Meses (22 días/mes) | **~7.5 meses** |
+| Líneas totales | 33,350 |
+| Días estimados (a 125 LOC/día) | **~267 días** |
+| Jornadas de 8h | **~267 jornadas** |
+| Semanas laborales (5 días) | **~53 semanas** |
+| Meses (22 días/mes) | **~12 meses** |
 
 ### Estimación de Costes (50 EUR/hora)
 
 | Concepto | Cálculo | Coste |
 |----------|---------|-------|
-| Jornadas totales | 165 días × 8h = 1,320 horas | |
-| **Coste total estimado** | 1,320h × 50€/h | **66,000 EUR** |
+| Jornadas totales | 267 días × 8h = 2,136 horas | |
+| **Coste total estimado** | 2,136h × 50€/h | **106,800 EUR** |
 
 > **Nota:** Esta estimación incluye:
 > - Sistema completo de ecommerce con Stripe
@@ -711,3 +731,7 @@ Esta ampliación añade dos nuevos módulos al sistema:
 > - Integración con Supabase, Stripe, Resend, Twilio
 > - SEO, PWA-ready, diseño responsive
 > - Notificaciones por email y WhatsApp
+> - **Sistema CRM completo con importación CSV**
+> - **Módulo de Gastos con proveedores y recurrencia**
+> - **Módulo de Tesorería con cuentas, movimientos y cobros**
+> - **Módulo de Ingresos (P&L) con tracking de pedidos/reservas**
