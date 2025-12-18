@@ -4,7 +4,6 @@ import {
   TrendingUp,
   TrendingDown,
   Euro,
-  Calendar,
   Upload,
   Download,
   BarChart3,

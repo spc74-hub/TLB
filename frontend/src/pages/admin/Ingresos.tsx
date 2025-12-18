@@ -4,13 +4,11 @@ import { es } from "date-fns/locale";
 import {
   Euro,
   TrendingUp,
-  TrendingDown,
   Calendar,
   Search,
   Filter,
   Loader2,
   ShoppingBag,
-  CalendarCheck,
   Users,
   ArrowUpRight,
   ArrowDownRight,
@@ -73,6 +71,7 @@ interface IngresosPorTipo {
   importe: number;
   porcentaje: number;
   label: string;
+  [key: string]: string | number;
 }
 
 interface TopCliente {

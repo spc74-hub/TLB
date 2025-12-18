@@ -124,7 +124,7 @@ export function Gastos() {
   // Modal estados
   const [modalGastoOpen, setModalGastoOpen] = useState(false);
   const [modalProveedorOpen, setModalProveedorOpen] = useState(false);
-  const [modalCategoriaOpen, setModalCategoriaOpen] = useState(false);
+  const [_modalCategoriaOpen, _setModalCategoriaOpen] = useState(false);
   const [gastoEditando, setGastoEditando] = useState<Gasto | null>(null);
   const [proveedorEditando, setProveedorEditando] = useState<Proveedor | null>(null);
   const [guardando, setGuardando] = useState(false);
@@ -680,10 +680,10 @@ export function Gastos() {
             </CardHeader>
             <CardContent>
               <div className="grid gap-4 md:grid-cols-2">
-                {stats?.por_categoria && Object.keys(stats.por_categoria).length > 0 ? (
-                  Object.entries(stats.por_categoria).map(([categoria, total]) => (
+                {stats?.por_categoria && stats.por_categoria.length > 0 ? (
+                  stats.por_categoria.map((item) => (
                     <div
-                      key={categoria}
+                      key={item.categoria}
                       className="flex items-center justify-between p-4 bg-crudo-50 rounded-lg"
                     >
                       <div className="flex items-center gap-3">
@@ -691,13 +691,13 @@ export function Gastos() {
                           className="w-3 h-3 rounded-full"
                           style={{
                             backgroundColor:
-                              categorias.find((c) => c.nombre === categoria)?.color ||
+                              categorias.find((c) => c.nombre === item.categoria)?.color ||
                               "#6b7280",
                           }}
                         />
-                        <span className="font-medium capitalize">{categoria}</span>
+                        <span className="font-medium capitalize">{item.categoria}</span>
                       </div>
-                      <span className="font-bold text-carbon-800">{(total as number).toFixed(2)}€</span>
+                      <span className="font-bold text-carbon-800">{item.total.toFixed(2)}€</span>
                     </div>
                   ))
                 ) : (

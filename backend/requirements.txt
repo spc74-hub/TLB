@@ -19,3 +19,12 @@ starlette==0.41.3
 
 # HTTP client (para Stripe, Resend, etc.)
 httpx>=0.24.0
+
+# Email (Resend)
+resend>=2.0.0
+
+# WhatsApp (Twilio)
+twilio>=9.0.0
+
+# Payments (Stripe)
+stripe>=10.0.0
