@@ -696,11 +696,11 @@ Esta ampliación añade dos nuevos módulos al sistema:
 ### Líneas de Código (2025-11-27)
 | Componente | Líneas |
 |------------|--------|
-| Frontend (React/TypeScript) | ~17,500 |
-| Backend (Python/FastAPI) | ~4,800 |
-| Database (SQL) | ~3,400 |
-| CSS | ~150 |
-| **TOTAL** | **~33,350** |
+| Frontend (React/TypeScript) | 22,023 |
+| Backend (Python/FastAPI) | 7,399 |
+| Database (SQL) | 3,929 |
+| CSS | 126 |
+| **TOTAL** | **33,477** |
 
 ### Estimación de Esfuerzo
 
@@ -710,18 +710,18 @@ Esta ampliación añade dos nuevos módulos al sistema:
 
 | Métrica | Valor |
 |---------|-------|
-| Líneas totales | 33,350 |
-| Días estimados (a 125 LOC/día) | **~267 días** |
-| Jornadas de 8h | **~267 jornadas** |
-| Semanas laborales (5 días) | **~53 semanas** |
-| Meses (22 días/mes) | **~12 meses** |
+| Líneas totales | 33,477 |
+| Días estimados (a 125 LOC/día) | **~268 días** |
+| Jornadas de 8h | **~268 jornadas** |
+| Semanas laborales (5 días) | **~54 semanas** |
+| Meses (22 días/mes) | **~12.2 meses** |
 
 ### Estimación de Costes (50 EUR/hora)
 
 | Concepto | Cálculo | Coste |
 |----------|---------|-------|
-| Jornadas totales | 267 días × 8h = 2,136 horas | |
-| **Coste total estimado** | 2,136h × 50€/h | **106,800 EUR** |
+| Jornadas totales | 268 días × 8h = 2,144 horas | |
+| **Coste total estimado** | 2,144h × 50€/h | **107,200 EUR** |
 
 > **Nota:** Esta estimación incluye:
 > - Sistema completo de ecommerce con Stripe

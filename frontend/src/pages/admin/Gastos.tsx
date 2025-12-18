@@ -45,8 +45,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 
-const API_BASE = import.meta.env.VITE_API_URL || "http://localhost:8001";
-const API_URL = `${API_BASE}/api/v1`;
+const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8000/api/v1";
 
 // Tipos
 interface CategoriaGasto {

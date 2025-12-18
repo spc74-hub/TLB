@@ -16,3 +16,6 @@ email-validator==2.2.0
 
 # CORS
 starlette==0.41.3
+
+# HTTP client (para Stripe, Resend, etc.)
+httpx>=0.24.0
