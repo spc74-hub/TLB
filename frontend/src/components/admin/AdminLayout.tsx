@@ -16,6 +16,7 @@ import {
   Wallet,
   BarChart3,
   TrendingUp,
+  Shield,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
@@ -76,6 +77,11 @@ const menuItems = [
     title: "Cuenta Resultados",
     href: "/admin/cuenta-resultados",
     icon: BarChart3,
+  },
+  {
+    title: "Usuarios",
+    href: "/admin/usuarios",
+    icon: Shield,
   },
   {
     title: "Configuración",

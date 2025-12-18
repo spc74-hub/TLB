@@ -8,3 +8,4 @@ export { Ingresos } from "./Ingresos";
 export { Gastos } from "./Gastos";
 export { Tesoreria } from "./Tesoreria";
 export { CuentaResultados } from "./CuentaResultados";
+export { Usuarios } from "./Usuarios";
