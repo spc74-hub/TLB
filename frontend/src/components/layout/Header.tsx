@@ -1,5 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
-import { Menu, X, Leaf, ShoppingCart, Heart, User, LogOut, Loader2 } from "lucide-react";
+import { Menu, X, Leaf, ShoppingCart, Heart, User, LogOut, Loader2, Settings } from "lucide-react";
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -95,6 +95,14 @@ export function Header() {
                       Mi perfil
                     </Link>
                   </DropdownMenuItem>
+                  {(perfil?.rol === "admin" || perfil?.rol === "profesional") && (
+                    <DropdownMenuItem asChild>
+                      <Link to="/admin" className="flex items-center gap-2">
+                        <Settings className="h-4 w-4" />
+                        Panel Admin
+                      </Link>
+                    </DropdownMenuItem>
+                  )}
                   <DropdownMenuSeparator />
                   <DropdownMenuItem onClick={handleLogout} className="flex items-center gap-2 text-terracota-600">
                     <LogOut className="h-4 w-4" />
@@ -180,6 +188,16 @@ export function Header() {
                     >
                       Mi perfil
                     </Link>
+                    {(perfil?.rol === "admin" || perfil?.rol === "profesional") && (
+                      <Link
+                        to="/admin"
+                        className="block text-carbon-600 hover:text-salvia-600 py-2 flex items-center gap-2"
+                        onClick={() => setMenuAbierto(false)}
+                      >
+                        <Settings className="h-4 w-4" />
+                        Panel Admin
+                      </Link>
+                    )}
                     <button
                       onClick={() => {
                         handleLogout();
