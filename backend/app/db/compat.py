@@ -178,7 +178,9 @@ class QueryBuilder:
         cols = list(data.keys())
         vals = [data[c] for c in cols]
         phs = [f"${i+1}" for i in range(len(vals))]
-        sql = f'INSERT INTO "{self._table}" ({", ".join(f\'"{c}"\' for c in cols)}) VALUES ({", ".join(phs)}) RETURNING *'
+        col_names = ", ".join(f'"{c}"' for c in cols)
+        ph_str = ", ".join(phs)
+        sql = f'INSERT INTO "{self._table}" ({col_names}) VALUES ({ph_str}) RETURNING *'
         row = await conn.fetchrow(sql, *vals)
         return QueryResult(data=self._row_to_dict(row) if row else None)
 
