@@ -72,6 +72,13 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# Servir ficheros de storage (imágenes de productos/servicios)
+from fastapi.staticfiles import StaticFiles
+import os
+storage_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), "storage")
+if os.path.exists(storage_path):
+    app.mount("/storage", StaticFiles(directory=storage_path), name="storage")
+
 # Incluir routers
 app.include_router(servicios.router, prefix="/api/v1")
 app.include_router(reservas.router, prefix="/api/v1")

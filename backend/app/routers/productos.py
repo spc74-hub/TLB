@@ -3,8 +3,10 @@ Router de productos para The Lobby Beauty.
 Gestiona los endpoints relacionados con los productos de la tienda.
 """
 
-from fastapi import APIRouter, HTTPException, Query
+from fastapi import APIRouter, HTTPException, Query, UploadFile, File
 from typing import Optional
+import os
+import time
 
 from app.models.schemas import (
     Producto,
@@ -280,3 +282,25 @@ async def actualizar_stock(producto_id: int, cantidad: int):
     )
 
     return response.data[0]
+
+
+@router.post("/{producto_id}/imagen")
+async def subir_imagen_producto(producto_id: int, file: UploadFile = File(...)):
+    """Subir imagen de un producto."""
+    storage_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "storage", "imagenes", "productos")
+    os.makedirs(storage_dir, exist_ok=True)
+
+    ext = file.filename.split(".")[-1] if file.filename else "png"
+    filename = f"{producto_id}_{int(time.time() * 1000)}.{ext}"
+    filepath = os.path.join(storage_dir, filename)
+
+    content = await file.read()
+    with open(filepath, "wb") as f:
+        f.write(content)
+
+    imagen_url = f"/storage/imagenes/productos/{filename}"
+
+    supabase = init_supabase()
+    supabase.table("productos").update({"imagen_url": imagen_url}).eq("id", producto_id).execute()
+
+    return {"imagen_url": imagen_url}

@@ -297,19 +297,35 @@ export async function actualizarPassword(_newPassword: string) {
   return { error: 'Password update not available — using Cloudflare Access' };
 }
 
-// --- Images (stubs — storage not migrated yet) ---
-export async function subirImagenProducto(_file: File, _productoId: number): Promise<string> {
-  console.warn('[Storage] Image upload not implemented yet');
-  return '';
+// --- Images ---
+export async function subirImagenProducto(file: File, productoId: number): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  formData.append('tipo', 'productos');
+  formData.append('id', String(productoId));
+  const res = await fetch(`${API_URL}/productos/${productoId}/imagen`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Error uploading image');
+  const data = await res.json();
+  return data.imagen_url || '';
 }
 
-export async function subirImagenServicio(_file: File, _servicioId: number): Promise<string> {
-  console.warn('[Storage] Image upload not implemented yet');
-  return '';
+export async function subirImagenServicio(file: File, servicioId: number): Promise<string> {
+  const formData = new FormData();
+  formData.append('file', file);
+  const res = await fetch(`${API_URL}/servicios/${servicioId}/imagen`, {
+    method: 'POST',
+    body: formData,
+  });
+  if (!res.ok) throw new Error('Error uploading image');
+  const data = await res.json();
+  return data.imagen_url || '';
 }
 
 export async function eliminarImagen(_imagenUrl: string): Promise<void> {
-  console.warn('[Storage] Image delete not implemented yet');
+  // Images are overwritten on upload — no separate delete needed
 }
 
 // --- Utility functions (local, no API call) ---
