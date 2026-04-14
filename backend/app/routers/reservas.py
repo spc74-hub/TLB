@@ -51,7 +51,8 @@ def crear_o_actualizar_cliente_crm(
             existente = (
                 supabase.table("clientes")
                 .select("id, acepta_marketing, total_reservas")
-                await .ilike("email", email).execute()
+                .ilike("email", email)
+                .execute()
             )
             if existente.data:
                 cliente_id = existente.data[0]["id"]
@@ -75,7 +76,7 @@ def crear_o_actualizar_cliente_crm(
                     datos_actualizar["total_reservas"] = total_reservas_actual + 1
                     datos_actualizar["ultima_visita"] = datetime.now().date().isoformat()
 
-                await supabase.table("clientes").update(datos_actualizar).eq("id", cliente_id).execute()
+                supabase.table("clientes").update(datos_actualizar).eq("id", cliente_id).execute()
 
         # Si no existe, crear nuevo cliente
         if not cliente_id:
@@ -95,7 +96,7 @@ def crear_o_actualizar_cliente_crm(
             if reserva_id:
                 datos_cliente["ultima_visita"] = datetime.now().date().isoformat()
 
-            response = await supabase.table("clientes").insert(datos_cliente).execute()
+            response = supabase.table("clientes").insert(datos_cliente).execute()
             cliente_id = response.data[0]["id"]
 
         # Vincular reserva al cliente
@@ -104,14 +105,14 @@ def crear_o_actualizar_cliente_crm(
             supabase.table("cliente_reservas_link").upsert({
                 "cliente_id": cliente_id,
                 "reserva_id": reserva_id,
-            await }, on_conflict="cliente_id,reserva_id").execute()
+            }, on_conflict="cliente_id,reserva_id").execute()
 
         # Vincular pedido al cliente
         if pedido_id and cliente_id:
             supabase.table("cliente_pedidos_link").upsert({
                 "cliente_id": cliente_id,
                 "pedido_id": pedido_id,
-            await }, on_conflict="cliente_id,pedido_id").execute()
+            }, on_conflict="cliente_id,pedido_id").execute()
 
         return cliente_id
 
@@ -147,23 +148,23 @@ async def listar_reservas(
     """
     supabase = init_supabase()
 
-    query = await supabase.table("reservas").select("*, servicios(*)")
+    query = supabase.table("reservas").select("*, servicios(*)")
 
     if fecha_desde:
-        query = await query.gte("fecha", fecha_desde.isoformat())
+        query = query.gte("fecha", fecha_desde.isoformat())
 
     if fecha_hasta:
-        query = await query.lte("fecha", fecha_hasta.isoformat())
+        query = query.lte("fecha", fecha_hasta.isoformat())
 
     if estado:
-        query = await query.eq("estado", estado.value)
+        query = query.eq("estado", estado.value)
 
     if usuario_id:
-        query = await query.eq("usuario_id", usuario_id)
+        query = query.eq("usuario_id", usuario_id)
 
-    query = await query.order("fecha", desc=True).order("hora")
+    query = query.order("fecha", desc=True).order("hora")
 
-    response = await query.execute()
+    response = query.execute()
 
     # Transformar respuesta para incluir servicio
     reservas = []
@@ -192,7 +193,8 @@ async def verificar_disponibilidad(
         supabase.table("reservas")
         .select("hora")
         .eq("fecha", fecha.isoformat())
-        await .neq("estado", "cancelada").execute()
+        .neq("estado", "cancelada")
+        .execute()
     )
 
     horas_ocupadas = [r["hora"] for r in response.data]
@@ -221,7 +223,8 @@ async def obtener_reserva(reserva_id: int):
         supabase.table("reservas")
         .select("*, servicios(*)")
         .eq("id", reserva_id)
-        await .single().execute()
+        .single()
+        .execute()
     )
 
     if not response.data:
@@ -247,7 +250,8 @@ async def crear_reserva(reserva: ReservaCreate, background_tasks: BackgroundTask
         .select("id, nombre, duracion_minutos, precio")
         .eq("id", reserva.servicio_id)
         .eq("activo", True)
-        await .single().execute()
+        .single()
+        .execute()
     )
 
     if not servicio.data:
@@ -260,7 +264,8 @@ async def crear_reserva(reserva: ReservaCreate, background_tasks: BackgroundTask
         .select("id")
         .eq("fecha", reserva.fecha.isoformat())
         .eq("hora", hora_str)
-        await .neq("estado", "cancelada").execute()
+        .neq("estado", "cancelada")
+        .execute()
     )
 
     if reserva_existente.data:
@@ -288,7 +293,7 @@ async def crear_reserva(reserva: ReservaCreate, background_tasks: BackgroundTask
     # Extraer acepta_marketing antes de insertar (no es columna de reservas)
     acepta_marketing = datos.pop("acepta_marketing", False)
 
-    response = await supabase.table("reservas").insert(datos).execute()
+    response = supabase.table("reservas").insert(datos).execute()
     reserva_creada = response.data[0]
 
     # Crear o actualizar cliente en CRM si hay email o teléfono
@@ -356,7 +361,8 @@ async def actualizar_reserva(reserva_id: int, reserva: ReservaUpdate):
     response = (
         supabase.table("reservas")
         .update(datos)
-        await .eq("id", reserva_id).execute()
+        .eq("id", reserva_id)
+        .execute()
     )
 
     if not response.data:
@@ -375,7 +381,8 @@ async def cancelar_reserva(reserva_id: int, background_tasks: BackgroundTasks):
         supabase.table("reservas")
         .select("*, servicios(nombre)")
         .eq("id", reserva_id)
-        await .single().execute()
+        .single()
+        .execute()
     )
 
     if not reserva_data.data:
@@ -385,7 +392,8 @@ async def cancelar_reserva(reserva_id: int, background_tasks: BackgroundTasks):
     response = (
         supabase.table("reservas")
         .update({"estado": "cancelada"})
-        await .eq("id", reserva_id).execute()
+        .eq("id", reserva_id)
+        .execute()
     )
 
     # Enviar notificaciones de cancelación

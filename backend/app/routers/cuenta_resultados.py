@@ -117,16 +117,16 @@ async def listar_categorias_pl(
     """Lista las categorías de P&L disponibles."""
     supabase = init_supabase()
 
-    query = await supabase.table("pl_categories").select("*")
+    query = supabase.table("pl_categories").select("*")
 
     if tipo:
-        query = await query.eq("tipo", tipo)
+        query = query.eq("tipo", tipo)
 
     if activo is not None:
-        query = await query.eq("activo", activo)
+        query = query.eq("activo", activo)
 
-    query = await query.order("orden_display")
-    response = await query.execute()
+    query = query.order("orden_display")
+    response = query.execute()
 
     return response.data
 
@@ -137,7 +137,7 @@ async def crear_categoria_pl(categoria: PLCategoriaCreate):
     supabase = init_supabase()
 
     datos = categoria.model_dump()
-    response = await supabase.table("pl_categories").insert(datos).execute()
+    response = supabase.table("pl_categories").insert(datos).execute()
 
     return response.data[0]
 
@@ -152,19 +152,20 @@ async def eliminar_categoria_pl(categoria_id: int):
         supabase.table("pl_historicos")
         .select("id")
         .eq("categoria_id", categoria_id)
-        await .limit(1).execute()
+        .limit(1)
+        .execute()
     )
 
     if historicos.data:
         # Soft delete
         supabase.table("pl_categories").update({"activo": False}).eq(
             "id", categoria_id
-        await ).execute()
+        ).execute()
         return MensajeRespuesta(mensaje="Categoría desactivada (tiene registros asociados)")
 
     # Hard delete
     response = (
-        await supabase.table("pl_categories").delete().eq("id", categoria_id).execute()
+        supabase.table("pl_categories").delete().eq("id", categoria_id).execute()
     )
 
     if not response.data:
@@ -217,7 +218,8 @@ async def obtener_dashboard(
             supabase.table("cash_movements")
             .select("tipo, importe, referencia_tipo")
             .gte("fecha", fecha_inicio.isoformat())
-            await .lt("fecha", fecha_fin.isoformat()).execute()
+            .lt("fecha", fecha_fin.isoformat())
+            .execute()
         )
 
         ingresos = sum(float(r["importe"]) for r in response.data if r["tipo"] == "ingreso")
@@ -236,7 +238,8 @@ async def obtener_dashboard(
             supabase.table("pl_historicos")
             .select("tipo, importe, categoria_codigo")
             .eq("anio", a)
-            await .eq("mes", m).execute()
+            .eq("mes", m)
+            .execute()
         )
 
         ingresos = sum(float(r["importe"]) for r in response.data if r["tipo"] == "ingreso")
@@ -284,7 +287,8 @@ async def obtener_dashboard(
             supabase.table("cash_movements")
             .select("tipo, importe, referencia_tipo")
             .gte("fecha", fecha_inicio.isoformat())
-            await .lt("fecha", fecha_fin.isoformat()).execute()
+            .lt("fecha", fecha_fin.isoformat())
+            .execute()
         )
 
         # Datos históricos
@@ -292,7 +296,8 @@ async def obtener_dashboard(
             supabase.table("pl_historicos")
             .select("tipo, importe, categoria_codigo, categoria_nombre")
             .eq("anio", a)
-            await .eq("mes", m).execute()
+            .eq("mes", m)
+            .execute()
         )
 
         # Agrupar ingresos
@@ -391,7 +396,8 @@ async def obtener_comparativa(
             supabase.table("cash_movements")
             .select("tipo, importe")
             .gte("fecha", fecha_inicio.isoformat())
-            await .lt("fecha", fecha_fin.isoformat()).execute()
+            .lt("fecha", fecha_fin.isoformat())
+            .execute()
         )
 
         # Históricos
@@ -399,7 +405,8 @@ async def obtener_comparativa(
             supabase.table("pl_historicos")
             .select("tipo, importe")
             .eq("anio", a)
-            await .eq("mes", m).execute()
+            .eq("mes", m)
+            .execute()
         )
 
         ingresos = (
@@ -463,7 +470,8 @@ async def obtener_resumen_anual(anio: int):
             supabase.table("cash_movements")
             .select("tipo, importe")
             .gte("fecha", fecha_inicio.isoformat())
-            await .lt("fecha", fecha_fin.isoformat()).execute()
+            .lt("fecha", fecha_fin.isoformat())
+            .execute()
         )
 
         # Históricos
@@ -471,7 +479,8 @@ async def obtener_resumen_anual(anio: int):
             supabase.table("pl_historicos")
             .select("tipo, importe")
             .eq("anio", anio)
-            await .eq("mes", mes).execute()
+            .eq("mes", mes)
+            .execute()
         )
 
         ingresos = (
@@ -599,13 +608,13 @@ async def importar_historicos(
             for j in range(0, len(registros_a_insertar), 100):
                 lote = registros_a_insertar[j:j+100]
                 try:
-                    await supabase.table("pl_historicos").insert(lote).execute()
+                    supabase.table("pl_historicos").insert(lote).execute()
                     registros_importados += len(lote)
                 except Exception as e:
                     # Si falla el lote, intentar uno por uno
                     for reg in lote:
                         try:
-                            await supabase.table("pl_historicos").insert(reg).execute()
+                            supabase.table("pl_historicos").insert(reg).execute()
                             registros_importados += 1
                         except Exception as e2:
                             errores.append({
@@ -641,7 +650,7 @@ async def importar_historicos(
             "total_ingresos": total_ingresos,
             "total_gastos": total_gastos,
             "errores": errores if errores else None,
-        await }).execute()
+        }).execute()
 
         return ImportacionResultado(
             lote_id=lote_id,
@@ -664,7 +673,8 @@ async def listar_importaciones():
         supabase.table("pl_importaciones")
         .select("*")
         .order("fecha_importacion", desc=True)
-        await .limit(50).execute()
+        .limit(50)
+        .execute()
     )
 
     return response.data
@@ -683,17 +693,18 @@ async def eliminar_importacion(lote_id: str):
         supabase.table("pl_importaciones")
         .select("id, registros_importados")
         .eq("lote_id", lote_id)
-        await .single().execute()
+        .single()
+        .execute()
     )
 
     if not importacion.data:
         raise HTTPException(status_code=404, detail="Importación no encontrada")
 
     # Eliminar registros históricos del lote
-    await supabase.table("pl_historicos").delete().eq("lote_importacion", lote_id).execute()
+    supabase.table("pl_historicos").delete().eq("lote_importacion", lote_id).execute()
 
     # Eliminar registro de importación
-    await supabase.table("pl_importaciones").delete().eq("lote_id", lote_id).execute()
+    supabase.table("pl_importaciones").delete().eq("lote_id", lote_id).execute()
 
     return MensajeRespuesta(
         mensaje=f"Importación eliminada ({importacion.data['registros_importados']} registros)"
@@ -711,21 +722,21 @@ async def listar_historicos(
     """Lista los registros históricos importados con filtros."""
     supabase = init_supabase()
 
-    query = await supabase.table("pl_historicos").select("*", count="exact")
+    query = supabase.table("pl_historicos").select("*", count="exact")
 
     if anio:
-        query = await query.eq("anio", anio)
+        query = query.eq("anio", anio)
 
     if mes:
-        query = await query.eq("mes", mes)
+        query = query.eq("mes", mes)
 
     if tipo:
-        query = await query.eq("tipo", tipo)
+        query = query.eq("tipo", tipo)
 
     offset = (pagina - 1) * por_pagina
-    query = await query.order("anio", desc=True).order("mes", desc=True).range(offset, offset + por_pagina - 1)
+    query = query.order("anio", desc=True).order("mes", desc=True).range(offset, offset + por_pagina - 1)
 
-    response = await query.execute()
+    response = query.execute()
 
     return response.data
 
@@ -798,7 +809,8 @@ async def obtener_estado_migracion():
     pedidos_sin_mov = (
         supabase.table("pedidos")
         .select("id", count="exact")
-        await .in_("estado", ["pagado", "preparando", "enviado", "entregado"]).execute()
+        .in_("estado", ["pagado", "preparando", "enviado", "entregado"])
+        .execute()
     )
 
     # Verificar cuáles tienen movimiento
@@ -808,7 +820,8 @@ async def obtener_estado_migracion():
         mov_check = (
             supabase.table("cash_movements")
             .select("pedido_id")
-            await .in_("pedido_id", pedidos_ids).execute()
+            .in_("pedido_id", pedidos_ids)
+            .execute()
         )
         pedidos_con_mov = len(set(m["pedido_id"] for m in mov_check.data)) if mov_check.data else 0
 
@@ -817,13 +830,15 @@ async def obtener_estado_migracion():
         supabase.table("expenses")
         .select("id", count="exact")
         .eq("pagado", True)
-        await .is_("movimiento_id", "null").execute()
+        .is_("movimiento_id", "null")
+        .execute()
     )
 
     # Total en cash_movements
     movimientos_result = (
         supabase.table("cash_movements")
-        await .select("id", count="exact").execute()
+        .select("id", count="exact")
+        .execute()
     )
 
     return MigracionEstado(
@@ -849,7 +864,8 @@ async def migrar_pedidos_existentes():
         .select("id")
         .eq("es_principal", True)
         .eq("activo", True)
-        await .limit(1).execute()
+        .limit(1)
+        .execute()
     )
 
     if not cuenta.data:
@@ -858,7 +874,8 @@ async def migrar_pedidos_existentes():
             .select("id")
             .eq("activo", True)
             .order("id")
-            await .limit(1).execute()
+            .limit(1)
+            .execute()
         )
 
     if not cuenta.data:
@@ -874,7 +891,8 @@ async def migrar_pedidos_existentes():
         supabase.table("pedidos")
         .select("id, total, nombre_envio, created_at, estado")
         .in_("estado", ["pagado", "preparando", "enviado", "entregado"])
-        await .order("created_at").execute()
+        .order("created_at")
+        .execute()
     )
 
     if not pedidos_result.data:
@@ -890,7 +908,8 @@ async def migrar_pedidos_existentes():
     mov_existentes = (
         supabase.table("cash_movements")
         .select("pedido_id")
-        await .in_("pedido_id", pedidos_ids).execute()
+        .in_("pedido_id", pedidos_ids)
+        .execute()
     )
     ids_con_movimiento = set(m["pedido_id"] for m in mov_existentes.data) if mov_existentes.data else set()
 
@@ -922,7 +941,7 @@ async def migrar_pedidos_existentes():
                 "pedido_id": pedido["id"],
             }
 
-            await supabase.table("cash_movements").insert(movimiento_data).execute()
+            supabase.table("cash_movements").insert(movimiento_data).execute()
             total_importe += Decimal(str(pedido["total"])) if pedido["total"] else Decimal("0")
             registros_migrados += 1
 
@@ -953,7 +972,8 @@ async def migrar_gastos_existentes():
         .select("id")
         .eq("activo", True)
         .order("id")
-        await .limit(1).execute()
+        .limit(1)
+        .execute()
     )
 
     cuenta_default_id = cuenta_default.data[0]["id"] if cuenta_default.data else None
@@ -970,7 +990,8 @@ async def migrar_gastos_existentes():
         .select("id, importe, concepto, fecha, fecha_pago, cuenta_pago_id")
         .eq("pagado", True)
         .is_("movimiento_id", "null")
-        await .order("fecha").execute()
+        .order("fecha")
+        .execute()
     )
 
     if not gastos_result.data:
@@ -1000,14 +1021,14 @@ async def migrar_gastos_existentes():
                 "gasto_id": gasto["id"],
             }
 
-            mov_result = await supabase.table("cash_movements").insert(movimiento_data).execute()
+            mov_result = supabase.table("cash_movements").insert(movimiento_data).execute()
 
             if mov_result.data:
                 # Actualizar el gasto con el movimiento_id
                 supabase.table("expenses").update({
                     "movimiento_id": mov_result.data[0]["id"],
                     "cuenta_pago_id": cuenta_id,
-                await }).eq("id", gasto["id"]).execute()
+                }).eq("id", gasto["id"]).execute()
 
                 total_importe += Decimal(str(gasto["importe"])) if gasto["importe"] else Decimal("0")
                 registros_migrados += 1

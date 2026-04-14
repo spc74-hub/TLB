@@ -86,7 +86,21 @@ class QueryBuilder:
     def maybe_single(self):
         self._single = True; self._limit_val = 1; return self
 
-    async def execute(self) -> QueryResult:
+    def execute(self) -> QueryResult:
+        """Synchronous execute — runs async code via the current event loop.
+        This allows supabase-py style calls without await."""
+        import asyncio
+        loop = asyncio.get_event_loop()
+        if loop.is_running():
+            # We're inside an async context (FastAPI) — create a new thread
+            import concurrent.futures
+            with concurrent.futures.ThreadPoolExecutor() as executor:
+                future = executor.submit(asyncio.run, self._async_execute())
+                return future.result(timeout=30)
+        else:
+            return asyncio.run(self._async_execute())
+
+    async def _async_execute(self) -> QueryResult:
         pool = await get_pool()
         async with pool.acquire() as conn:
             if self._op == "select": return await self._exec_select(conn)

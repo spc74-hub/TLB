@@ -103,7 +103,8 @@ async def get_ingresos_stats(
         .select("id, importe, fecha, concepto, referencia_tipo")
         .eq("tipo", "ingreso")
         .gte("fecha", primer_dia_mes_ts)
-        await .lte("fecha", ultimo_dia_mes_ts).execute()
+        .lte("fecha", ultimo_dia_mes_ts)
+        .execute()
     )
 
     # Movimientos de hoy
@@ -112,7 +113,8 @@ async def get_ingresos_stats(
         .select("id, importe")
         .eq("tipo", "ingreso")
         .gte("fecha", hoy_inicio_ts)
-        await .lte("fecha", hoy_fin_ts).execute()
+        .lte("fecha", hoy_fin_ts)
+        .execute()
     )
 
     # Movimientos de la semana
@@ -121,7 +123,8 @@ async def get_ingresos_stats(
         .select("id, importe")
         .eq("tipo", "ingreso")
         .gte("fecha", inicio_semana_ts)
-        await .lte("fecha", hoy_fin_ts).execute()
+        .lte("fecha", hoy_fin_ts)
+        .execute()
     )
 
     # Movimientos mes anterior (para comparativa)
@@ -130,7 +133,8 @@ async def get_ingresos_stats(
         .select("id, importe")
         .eq("tipo", "ingreso")
         .gte("fecha", primer_dia_mes_ant_ts)
-        await .lte("fecha", ultimo_dia_mes_ant_ts).execute()
+        .lte("fecha", ultimo_dia_mes_ant_ts)
+        .execute()
     )
 
     # Calcular totales
@@ -197,9 +201,9 @@ async def get_ingresos(
     )
 
     if tipo:
-        query = await query.eq("referencia_tipo", tipo)
+        query = query.eq("referencia_tipo", tipo)
 
-    result = await query.execute()
+    result = query.execute()
 
     if not result.data:
         return IngresosListResponse(items=[], total=0, total_importe=0)
@@ -211,7 +215,8 @@ async def get_ingresos(
         pedidos_result = (
             supabase.table("pedidos")
             .select("id, nombre_envio, estado")
-            await .in_("id", pedido_ids).execute()
+            .in_("id", pedido_ids)
+            .execute()
         )
         pedidos_info = {p["id"]: p for p in (pedidos_result.data or [])}
 
@@ -274,7 +279,8 @@ async def get_ingresos_por_dia(
         .select("fecha, importe")
         .eq("tipo", "ingreso")
         .gte("fecha", fecha_desde)
-        await .order("fecha").execute()
+        .order("fecha")
+        .execute()
     )
 
     # Agrupar por día
@@ -328,7 +334,8 @@ async def get_ingresos_por_tipo(
         .select("referencia_tipo, importe")
         .eq("tipo", "ingreso")
         .gte("fecha", primer_dia_ts)
-        await .lte("fecha", ultimo_dia_ts).execute()
+        .lte("fecha", ultimo_dia_ts)
+        .execute()
     )
 
     # Agrupar por tipo
@@ -390,7 +397,8 @@ async def get_top_clientes(
         .eq("tipo", "ingreso")
         .not_.is_("pedido_id", "null")
         .gte("fecha", primer_dia_ts)
-        await .lte("fecha", ultimo_dia_ts).execute()
+        .lte("fecha", ultimo_dia_ts)
+        .execute()
     )
 
     if not movimientos.data:
@@ -401,7 +409,8 @@ async def get_top_clientes(
     pedidos = (
         supabase.table("pedidos")
         .select("id, nombre_envio")
-        await .in_("id", pedido_ids).execute()
+        .in_("id", pedido_ids)
+        .execute()
     )
 
     pedidos_info = {p["id"]: p for p in (pedidos.data or [])}

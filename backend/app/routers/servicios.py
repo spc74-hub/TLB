@@ -43,25 +43,25 @@ async def listar_servicios(
     supabase = init_supabase()
 
     # Construir query
-    query = await supabase.table("servicios").select("*", count="exact")
+    query = supabase.table("servicios").select("*", count="exact")
 
     if categoria:
-        query = await query.eq("categoria", categoria.value)
+        query = query.eq("categoria", categoria.value)
 
     if solo_activos:
-        query = await query.eq("activo", True)
+        query = query.eq("activo", True)
 
     if solo_libre_toxicos:
-        query = await query.eq("es_libre_toxicos", True)
+        query = query.eq("es_libre_toxicos", True)
 
     # Paginación
     offset = (pagina - 1) * por_pagina
-    query = await query.range(offset, offset + por_pagina - 1)
+    query = query.range(offset, offset + por_pagina - 1)
 
     # Ordenar por nombre
-    query = await query.order("nombre")
+    query = query.order("nombre")
 
-    response = await query.execute()
+    response = query.execute()
 
     return ListaServicios(
         items=response.data,
@@ -80,7 +80,8 @@ async def obtener_servicio(servicio_id: int):
         supabase.table("servicios")
         .select("*")
         .eq("id", servicio_id)
-        await .single().execute()
+        .single()
+        .execute()
     )
 
     if not response.data:
@@ -100,7 +101,8 @@ async def crear_servicio(servicio: ServicioCreate):
 
     response = (
         supabase.table("servicios")
-        await .insert(servicio.model_dump()).execute()
+        .insert(servicio.model_dump())
+        .execute()
     )
 
     return response.data[0]
@@ -124,7 +126,8 @@ async def actualizar_servicio(servicio_id: int, servicio: ServicioUpdate):
     response = (
         supabase.table("servicios")
         .update(datos)
-        await .eq("id", servicio_id).execute()
+        .eq("id", servicio_id)
+        .execute()
     )
 
     if not response.data:
@@ -146,7 +149,8 @@ async def eliminar_servicio(servicio_id: int):
     response = (
         supabase.table("servicios")
         .update({"activo": False})
-        await .eq("id", servicio_id).execute()
+        .eq("id", servicio_id)
+        .execute()
     )
 
     if not response.data:
@@ -165,7 +169,8 @@ async def listar_por_categoria(categoria: CategoriaServicio):
         .select("*")
         .eq("categoria", categoria.value)
         .eq("activo", True)
-        await .order("nombre").execute()
+        .order("nombre")
+        .execute()
     )
 
     return response.data
