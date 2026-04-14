@@ -43,7 +43,7 @@ def crear_o_actualizar_cliente_crm_pedido(
             supabase.table("clientes")
             .select("id, acepta_marketing, total_pedidos, total_gastado")
             .ilike("email", email)
-            .execute()
+            await .execute()
         )
 
         if existente.data:
@@ -67,7 +67,7 @@ def crear_o_actualizar_cliente_crm_pedido(
                 datos_actualizar["acepta_marketing"] = True
                 datos_actualizar["fecha_opt_in"] = datetime.now().isoformat()
 
-            supabase.table("clientes").update(datos_actualizar).eq("id", cliente_id).execute()
+            await supabase.table("clientes").update(datos_actualizar).eq("id", cliente_id).execute()
 
         else:
             # Crear nuevo cliente
@@ -86,7 +86,7 @@ def crear_o_actualizar_cliente_crm_pedido(
             if acepta_marketing:
                 datos_cliente["fecha_opt_in"] = datetime.now().isoformat()
 
-            response = supabase.table("clientes").insert(datos_cliente).execute()
+            response = await supabase.table("clientes").insert(datos_cliente).execute()
             cliente_id = response.data[0]["id"]
 
         # Vincular pedido al cliente
@@ -94,7 +94,7 @@ def crear_o_actualizar_cliente_crm_pedido(
             supabase.table("cliente_pedidos_link").insert({
                 "cliente_id": cliente_id,
                 "pedido_id": pedido_id,
-            }).execute()
+            await }).execute()
 
         print(f"✅ Cliente CRM {'actualizado' if existente.data else 'creado'}: {email}")
 
@@ -284,7 +284,7 @@ async def crear_pedido_desde_checkout(session: dict):
         }
 
         # Insertar pedido
-        result = supabase.table("pedidos").insert(pedido_data).execute()
+        result = await supabase.table("pedidos").insert(pedido_data).execute()
 
         if not result.data:
             print(f"❌ Error creando pedido: {result}")
@@ -310,7 +310,7 @@ async def crear_pedido_desde_checkout(session: dict):
                 "precio_total": item.get("precio", 0) * item.get("qty", 1),
                 "nombre_producto": item.get("nombre", ""),
             }
-            supabase.table("pedido_items").insert(item_data).execute()
+            await supabase.table("pedido_items").insert(item_data).execute()
 
         print(f"✅ {len(items)} items añadidos al pedido #{pedido_id}")
 
@@ -439,7 +439,7 @@ async def verify_session(session_id: str):
         supabase = get_supabase_client()
         payment_id = session.payment_intent or session.id
 
-        existing = supabase.table("pedidos").select("id").eq("stripe_payment_id", payment_id).execute()
+        existing = await supabase.table("pedidos").select("id").eq("stripe_payment_id", payment_id).execute()
 
         if existing.data and len(existing.data) > 0:
             # Ya existe el pedido (probablemente creado por webhook)

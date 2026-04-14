@@ -43,25 +43,25 @@ async def listar_servicios(
     supabase = init_supabase()
 
     # Construir query
-    query = supabase.table("servicios").select("*", count="exact")
+    query = await supabase.table("servicios").select("*", count="exact")
 
     if categoria:
-        query = query.eq("categoria", categoria.value)
+        query = await query.eq("categoria", categoria.value)
 
     if solo_activos:
-        query = query.eq("activo", True)
+        query = await query.eq("activo", True)
 
     if solo_libre_toxicos:
-        query = query.eq("es_libre_toxicos", True)
+        query = await query.eq("es_libre_toxicos", True)
 
     # Paginación
     offset = (pagina - 1) * por_pagina
-    query = query.range(offset, offset + por_pagina - 1)
+    query = await query.range(offset, offset + por_pagina - 1)
 
     # Ordenar por nombre
-    query = query.order("nombre")
+    query = await query.order("nombre")
 
-    response = query.execute()
+    response = await query.execute()
 
     return ListaServicios(
         items=response.data,
@@ -81,7 +81,7 @@ async def obtener_servicio(servicio_id: int):
         .select("*")
         .eq("id", servicio_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -102,7 +102,7 @@ async def crear_servicio(servicio: ServicioCreate):
     response = (
         supabase.table("servicios")
         .insert(servicio.model_dump())
-        .execute()
+        await .execute()
     )
 
     return response.data[0]
@@ -127,7 +127,7 @@ async def actualizar_servicio(servicio_id: int, servicio: ServicioUpdate):
         supabase.table("servicios")
         .update(datos)
         .eq("id", servicio_id)
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -150,7 +150,7 @@ async def eliminar_servicio(servicio_id: int):
         supabase.table("servicios")
         .update({"activo": False})
         .eq("id", servicio_id)
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -170,7 +170,7 @@ async def listar_por_categoria(categoria: CategoriaServicio):
         .eq("categoria", categoria.value)
         .eq("activo", True)
         .order("nombre")
-        .execute()
+        await .execute()
     )
 
     return response.data

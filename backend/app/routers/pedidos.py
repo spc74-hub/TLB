@@ -57,15 +57,15 @@ async def get_pedidos(
     try:
         supabase = get_supabase_client()
 
-        query = supabase.table("pedidos").select(
+        query = await supabase.table("pedidos").select(
             "*, pedido_items(*, producto:productos(nombre, imagen_url))"
         ).order("created_at", desc=True)
 
         if estado:
-            query = query.eq("estado", estado)
+            query = await query.eq("estado", estado)
 
-        query = query.range(offset, offset + limit - 1)
-        result = query.execute()
+        query = await query.range(offset, offset + limit - 1)
+        result = await query.execute()
 
         return result.data
     except Exception as e:
@@ -81,7 +81,7 @@ async def get_estadisticas():
         supabase = get_supabase_client()
 
         # Total de pedidos y ventas
-        pedidos_result = supabase.table("pedidos").select("id, total, estado, created_at").execute()
+        pedidos_result = await supabase.table("pedidos").select("id, total, estado, created_at").execute()
         pedidos = pedidos_result.data or []
 
         total_pedidos = len(pedidos)
@@ -134,9 +134,9 @@ async def get_pedidos_recientes(limit: int = 5):
     try:
         supabase = get_supabase_client()
 
-        result = supabase.table("pedidos").select(
+        result = await supabase.table("pedidos").select(
             "id, nombre_envio, total, estado, created_at"
-        ).order("created_at", desc=True).limit(limit).execute()
+        await ).order("created_at", desc=True).limit(limit).execute()
 
         return result.data
     except Exception as e:
@@ -155,9 +155,9 @@ async def get_pedidos_pendientes_cobro():
         supabase = get_supabase_client()
 
         # Pedidos no cancelados y no cobrados
-        result = supabase.table("pedidos").select(
+        result = await supabase.table("pedidos").select(
             "id, nombre_envio, total, estado, metodo_pago, stripe_payment_id, created_at, cobrado, metodo_cobro_tipo"
-        ).eq("cobrado", False).neq("estado", "cancelado").order("created_at", desc=True).execute()
+        await ).eq("cobrado", False).neq("estado", "cancelado").order("created_at", desc=True).execute()
 
         pedidos = result.data or []
 
@@ -182,9 +182,9 @@ async def get_estadisticas_cobro():
         supabase = get_supabase_client()
 
         # Todos los pedidos no cancelados
-        pedidos_result = supabase.table("pedidos").select(
+        pedidos_result = await supabase.table("pedidos").select(
             "id, total, estado, cobrado, metodo_cobro_tipo, stripe_payment_id"
-        ).neq("estado", "cancelado").execute()
+        await ).neq("estado", "cancelado").execute()
 
         pedidos = pedidos_result.data or []
 
@@ -231,9 +231,9 @@ async def get_pedido(pedido_id: int):
     try:
         supabase = get_supabase_client()
 
-        result = supabase.table("pedidos").select(
+        result = await supabase.table("pedidos").select(
             "*, pedido_items(*, producto:productos(nombre, imagen_url))"
-        ).eq("id", pedido_id).single().execute()
+        await ).eq("id", pedido_id).single().execute()
 
         if not result.data:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
@@ -261,9 +261,9 @@ async def update_estado_pedido(pedido_id: int, request: EstadoPedidoUpdate):
     try:
         supabase = get_supabase_client()
 
-        result = supabase.table("pedidos").update({
+        result = await supabase.table("pedidos").update({
             "estado": request.estado
-        }).eq("id", pedido_id).execute()
+        await }).eq("id", pedido_id).execute()
 
         if not result.data:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
@@ -285,9 +285,9 @@ async def registrar_cobro(pedido_id: int, request: RegistrarCobroRequest):
         supabase = get_supabase_client()
 
         # 1. Obtener el pedido
-        pedido_result = supabase.table("pedidos").select(
+        pedido_result = await supabase.table("pedidos").select(
             "id, total, cobrado, nombre_envio, estado"
-        ).eq("id", pedido_id).single().execute()
+        await ).eq("id", pedido_id).single().execute()
 
         if not pedido_result.data:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")
@@ -302,13 +302,13 @@ async def registrar_cobro(pedido_id: int, request: RegistrarCobroRequest):
         if not cuenta_id:
             # Buscar cuenta por defecto según método de cobro
             if request.metodo_cobro == MetodoCobro.efectivo:
-                cuenta_result = supabase.table("cash_accounts").select("id").eq(
+                cuenta_result = await supabase.table("cash_accounts").select("id").eq(
                     "tipo", "efectivo"
-                ).eq("activo", True).limit(1).execute()
+                await ).eq("activo", True).limit(1).execute()
             else:
-                cuenta_result = supabase.table("cash_accounts").select("id").eq(
+                cuenta_result = await supabase.table("cash_accounts").select("id").eq(
                     "tipo", "banco"
-                ).eq("es_principal", True).eq("activo", True).limit(1).execute()
+                await ).eq("es_principal", True).eq("activo", True).limit(1).execute()
 
             if not cuenta_result.data:
                 raise HTTPException(
@@ -330,9 +330,9 @@ async def registrar_cobro(pedido_id: int, request: RegistrarCobroRequest):
             "pedido_id": pedido_id
         }
 
-        movimiento_result = supabase.table("cash_movements").insert(
+        movimiento_result = await supabase.table("cash_movements").insert(
             movimiento_data
-        ).execute()
+        await ).execute()
 
         if not movimiento_result.data:
             raise HTTPException(
@@ -351,9 +351,9 @@ async def registrar_cobro(pedido_id: int, request: RegistrarCobroRequest):
             "movimiento_cobro_id": movimiento_id
         }
 
-        pedido_update_result = supabase.table("pedidos").update(
+        pedido_update_result = await supabase.table("pedidos").update(
             update_data
-        ).eq("id", pedido_id).execute()
+        await ).eq("id", pedido_id).execute()
 
         if not pedido_update_result.data:
             raise HTTPException(

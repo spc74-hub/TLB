@@ -75,24 +75,24 @@ async def listar_usuarios(
         supabase = get_supabase_client()
 
         # Construir query base
-        query = supabase.table("perfiles").select("*", count="exact")
+        query = await supabase.table("perfiles").select("*", count="exact")
 
         # Filtro por rol
         if rol:
-            query = query.eq("rol", rol)
+            query = await query.eq("rol", rol)
 
         # Filtro por búsqueda (email o nombre)
         if busqueda:
-            query = query.or_(f"email.ilike.%{busqueda}%,nombre.ilike.%{busqueda}%")
+            query = await query.or_(f"email.ilike.%{busqueda}%,nombre.ilike.%{busqueda}%")
 
         # Ordenar por fecha de creación
-        query = query.order("created_at", desc=True)
+        query = await query.order("created_at", desc=True)
 
         # Paginación
         offset = (pagina - 1) * por_pagina
-        query = query.range(offset, offset + por_pagina - 1)
+        query = await query.range(offset, offset + por_pagina - 1)
 
-        result = query.execute()
+        result = await query.execute()
 
         usuarios = []
         for u in result.data:
@@ -125,7 +125,7 @@ async def crear_usuario(usuario: UsuarioCreate):
         supabase = get_supabase_client()
 
         # 1. Crear usuario en Supabase Auth
-        auth_response = supabase.auth.admin.create_user({
+        auth_response = await supabase.auth.admin.create_user({
             "email": usuario.email,
             "password": usuario.password,
             "email_confirm": True,  # Auto-confirmar email
@@ -151,7 +151,7 @@ async def crear_usuario(usuario: UsuarioCreate):
             "rol": usuario.rol.value,
         }
 
-        supabase.table("perfiles").upsert(perfil_data).execute()
+        await supabase.table("perfiles").upsert(perfil_data).execute()
 
         return UsuarioResponse(
             id=user_id,
@@ -180,7 +180,7 @@ async def obtener_usuario(usuario_id: str):
     try:
         supabase = get_supabase_client()
 
-        result = supabase.table("perfiles").select("*").eq("id", usuario_id).single().execute()
+        result = await supabase.table("perfiles").select("*").eq("id", usuario_id).single().execute()
 
         if not result.data:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")
@@ -228,7 +228,7 @@ async def actualizar_usuario(usuario_id: str, usuario: UsuarioUpdate):
         update_data["updated_at"] = datetime.now().isoformat()
 
         # Actualizar en la tabla perfiles
-        result = supabase.table("perfiles").update(update_data).eq("id", usuario_id).execute()
+        result = await supabase.table("perfiles").update(update_data).eq("id", usuario_id).execute()
 
         if not result.data:
             raise HTTPException(status_code=404, detail="Usuario no encontrado")

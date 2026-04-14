@@ -44,16 +44,16 @@ async def listar_categorias(
     """Lista todas las categorías de gastos."""
     supabase = init_supabase()
 
-    query = supabase.table("expense_categories").select("*")
+    query = await supabase.table("expense_categories").select("*")
 
     if activo is not None:
-        query = query.eq("activo", activo)
+        query = await query.eq("activo", activo)
 
     if categoria_base:
-        query = query.eq("categoria_base", categoria_base.value)
+        query = await query.eq("categoria_base", categoria_base.value)
 
-    query = query.order("nombre")
-    response = query.execute()
+    query = await query.order("nombre")
+    response = await query.execute()
 
     return response.data
 
@@ -66,7 +66,7 @@ async def crear_categoria(categoria: ExpenseCategoryCreate):
     datos = categoria.model_dump()
     datos["categoria_base"] = datos["categoria_base"].value
 
-    response = supabase.table("expense_categories").insert(datos).execute()
+    response = await supabase.table("expense_categories").insert(datos).execute()
 
     return response.data[0]
 
@@ -88,7 +88,7 @@ async def actualizar_categoria(categoria_id: int, categoria: ExpenseCategoryUpda
         supabase.table("expense_categories")
         .update(datos)
         .eq("id", categoria_id)
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -108,19 +108,19 @@ async def eliminar_categoria(categoria_id: int):
         .select("id")
         .eq("categoria_id", categoria_id)
         .limit(1)
-        .execute()
+        await .execute()
     )
 
     if gastos.data:
         # Soft delete si hay gastos asociados
         supabase.table("expense_categories").update({"activo": False}).eq(
             "id", categoria_id
-        ).execute()
+        await ).execute()
         return MensajeRespuesta(mensaje="Categoría desactivada (tiene gastos asociados)")
 
     # Hard delete si no hay gastos
     response = (
-        supabase.table("expense_categories").delete().eq("id", categoria_id).execute()
+        await supabase.table("expense_categories").delete().eq("id", categoria_id).execute()
     )
 
     if not response.data:
@@ -139,18 +139,18 @@ async def listar_proveedores(
     """Lista todos los proveedores."""
     supabase = init_supabase()
 
-    query = supabase.table("vendors").select("*")
+    query = await supabase.table("vendors").select("*")
 
     if activo is not None:
-        query = query.eq("activo", activo)
+        query = await query.eq("activo", activo)
 
     if busqueda:
-        query = query.or_(
+        query = await query.or_(
             f"nombre.ilike.%{busqueda}%,nif_cif.ilike.%{busqueda}%,email.ilike.%{busqueda}%"
         )
 
-    query = query.order("nombre")
-    response = query.execute()
+    query = await query.order("nombre")
+    response = await query.execute()
 
     return response.data
 
@@ -161,7 +161,7 @@ async def obtener_proveedor(proveedor_id: int):
     supabase = init_supabase()
 
     response = (
-        supabase.table("vendors").select("*").eq("id", proveedor_id).single().execute()
+        await supabase.table("vendors").select("*").eq("id", proveedor_id).single().execute()
     )
 
     if not response.data:
@@ -176,7 +176,7 @@ async def crear_proveedor(proveedor: VendorCreate):
     supabase = init_supabase()
 
     datos = proveedor.model_dump()
-    response = supabase.table("vendors").insert(datos).execute()
+    response = await supabase.table("vendors").insert(datos).execute()
 
     return response.data[0]
 
@@ -192,7 +192,7 @@ async def actualizar_proveedor(proveedor_id: int, proveedor: VendorUpdate):
         raise HTTPException(status_code=400, detail="No hay datos para actualizar")
 
     response = (
-        supabase.table("vendors").update(datos).eq("id", proveedor_id).execute()
+        await supabase.table("vendors").update(datos).eq("id", proveedor_id).execute()
     )
 
     if not response.data:
@@ -212,16 +212,16 @@ async def eliminar_proveedor(proveedor_id: int):
         .select("id")
         .eq("vendor_id", proveedor_id)
         .limit(1)
-        .execute()
+        await .execute()
     )
 
     if gastos.data:
         supabase.table("vendors").update({"activo": False}).eq(
             "id", proveedor_id
-        ).execute()
+        await ).execute()
         return MensajeRespuesta(mensaje="Proveedor desactivado (tiene gastos asociados)")
 
-    response = supabase.table("vendors").delete().eq("id", proveedor_id).execute()
+    response = await supabase.table("vendors").delete().eq("id", proveedor_id).execute()
 
     if not response.data:
         raise HTTPException(status_code=404, detail="Proveedor no encontrado")
@@ -250,39 +250,39 @@ async def listar_gastos(
     supabase = init_supabase()
 
     # Query con joins para obtener detalles
-    query = supabase.table("expenses").select(
+    query = await supabase.table("expenses").select(
         "*, expense_categories(nombre, color, icono), vendors(nombre), cash_accounts(nombre)",
         count="exact"
     )
 
     if fecha_desde:
-        query = query.gte("fecha", fecha_desde.isoformat())
+        query = await query.gte("fecha", fecha_desde.isoformat())
 
     if fecha_hasta:
-        query = query.lte("fecha", fecha_hasta.isoformat())
+        query = await query.lte("fecha", fecha_hasta.isoformat())
 
     if categoria_id:
-        query = query.eq("categoria_id", categoria_id)
+        query = await query.eq("categoria_id", categoria_id)
 
     if vendor_id:
-        query = query.eq("vendor_id", vendor_id)
+        query = await query.eq("vendor_id", vendor_id)
 
     if pagado is not None:
-        query = query.eq("pagado", pagado)
+        query = await query.eq("pagado", pagado)
 
     if es_recurrente is not None:
-        query = query.eq("es_recurrente", es_recurrente)
+        query = await query.eq("es_recurrente", es_recurrente)
 
     if busqueda:
-        query = query.or_(
+        query = await query.or_(
             f"concepto.ilike.%{busqueda}%,numero_factura.ilike.%{busqueda}%"
         )
 
     # Ordenar y paginar
     offset = (pagina - 1) * por_pagina
-    query = query.order("fecha", desc=True).range(offset, offset + por_pagina - 1)
+    query = await query.order("fecha", desc=True).range(offset, offset + por_pagina - 1)
 
-    response = query.execute()
+    response = await query.execute()
 
     # Transformar respuesta
     items = []
@@ -334,14 +334,14 @@ async def obtener_estadisticas(
         .gte("fecha", fecha_desde.isoformat())
         .lte("fecha", fecha_hasta.isoformat())
     )
-    gastos = query_total.execute()
+    gastos = await query_total.execute()
 
     total_periodo = sum(float(g["importe"]) for g in gastos.data)
     total_pagado = sum(float(g["importe"]) for g in gastos.data if g["pagado"])
     total_pendiente = total_periodo - total_pagado
 
     # Por categoría
-    categorias = supabase.table("expense_categories").select("id, nombre").execute()
+    categorias = await supabase.table("expense_categories").select("id, nombre").execute()
     cat_map = {c["id"]: c["nombre"] for c in categorias.data}
     por_categoria = {}
     for g in gastos.data:
@@ -351,7 +351,7 @@ async def obtener_estadisticas(
             por_categoria[nombre] = por_categoria.get(nombre, 0) + float(g["importe"])
 
     # Por proveedor
-    vendors = supabase.table("vendors").select("id, nombre").execute()
+    vendors = await supabase.table("vendors").select("id, nombre").execute()
     vendor_map = {v["id"]: v["nombre"] for v in vendors.data}
     por_proveedor = {}
     for g in gastos.data:
@@ -366,7 +366,7 @@ async def obtener_estadisticas(
         .select("id")
         .eq("es_recurrente", True)
         .or_("fecha_fin_recurrencia.is.null,fecha_fin_recurrencia.gte." + date.today().isoformat())
-        .execute()
+        await .execute()
     )
 
     # Próximos vencimientos (próximos 7 días)
@@ -381,7 +381,7 @@ async def obtener_estadisticas(
         .gte("fecha_vencimiento", proxima_semana.isoformat())
         .lte("fecha_vencimiento", proxima_semana_fin.isoformat())
         .order("fecha_vencimiento")
-        .execute()
+        await .execute()
     )
 
     return ExpenseStats(
@@ -405,7 +405,7 @@ async def obtener_gasto(gasto_id: int):
         .select("*, expense_categories(nombre, color, icono), vendors(nombre), cash_accounts(nombre)")
         .eq("id", gasto_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -447,7 +447,7 @@ async def crear_gasto(gasto: ExpenseCreate):
     if datos.get("frecuencia"):
         datos["frecuencia"] = datos["frecuencia"].value
 
-    response = supabase.table("expenses").insert(datos).execute()
+    response = await supabase.table("expenses").insert(datos).execute()
 
     return response.data[0]
 
@@ -468,7 +468,7 @@ async def actualizar_gasto(gasto_id: int, gasto: ExpenseUpdate):
         raise HTTPException(status_code=400, detail="No hay datos para actualizar")
 
     response = (
-        supabase.table("expenses").update(datos).eq("id", gasto_id).execute()
+        await supabase.table("expenses").update(datos).eq("id", gasto_id).execute()
     )
 
     if not response.data:
@@ -488,7 +488,7 @@ async def eliminar_gasto(gasto_id: int):
         .select("movimiento_id")
         .eq("id", gasto_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if gasto.data and gasto.data.get("movimiento_id"):
@@ -497,7 +497,7 @@ async def eliminar_gasto(gasto_id: int):
             detail="No se puede eliminar un gasto que ya tiene movimiento de caja asociado"
         )
 
-    response = supabase.table("expenses").delete().eq("id", gasto_id).execute()
+    response = await supabase.table("expenses").delete().eq("id", gasto_id).execute()
 
     if not response.data:
         raise HTTPException(status_code=404, detail="Gasto no encontrado")
@@ -523,7 +523,7 @@ async def marcar_gasto_pagado(
         .select("*")
         .eq("id", gasto_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not gasto.data:
@@ -535,14 +535,14 @@ async def marcar_gasto_pagado(
     # Si se debe crear movimiento
     movimiento_id = None
     if crear_movimiento and cuenta_id:
-        mov_response = supabase.table("cash_movements").insert({
+        mov_response = await supabase.table("cash_movements").insert({
             "cuenta_id": cuenta_id,
             "tipo": "gasto",
             "importe": gasto.data["importe"],
             "concepto": gasto.data["concepto"],
             "referencia_tipo": "gasto",
             "gasto_id": gasto_id,
-        }).execute()
+        await }).execute()
         movimiento_id = mov_response.data[0]["id"]
 
     # Actualizar gasto
@@ -559,7 +559,7 @@ async def marcar_gasto_pagado(
         supabase.table("expenses")
         .update(update_data)
         .eq("id", gasto_id)
-        .execute()
+        await .execute()
     )
 
     return response.data[0]
@@ -581,7 +581,7 @@ async def obtener_gastos_recurrentes_pendientes():
         .eq("es_recurrente", True)
         .is_("gasto_padre_id", "null")  # Solo gastos padre
         .or_(f"fecha_fin_recurrencia.is.null,fecha_fin_recurrencia.gte.{hoy.isoformat()}")
-        .execute()
+        await .execute()
     )
 
     return response.data

@@ -53,37 +53,37 @@ async def listar_productos(
     supabase = init_supabase()
 
     # Construir query
-    query = supabase.table("productos").select("*", count="exact")
+    query = await supabase.table("productos").select("*", count="exact")
 
     if categoria:
-        query = query.eq("categoria", categoria.value)
+        query = await query.eq("categoria", categoria.value)
 
     if solo_activos:
-        query = query.eq("activo", True)
+        query = await query.eq("activo", True)
 
     if solo_naturales:
-        query = query.eq("es_natural", True)
+        query = await query.eq("es_natural", True)
 
     if solo_veganos:
-        query = query.eq("es_vegano", True)
+        query = await query.eq("es_vegano", True)
 
     if solo_ofertas:
-        query = query.not_.is_("precio_oferta", "null")
+        query = await query.not_.is_("precio_oferta", "null")
 
     if solo_destacados:
-        query = query.eq("destacado", True)
+        query = await query.eq("destacado", True)
 
     if busqueda:
-        query = query.or_(f"nombre.ilike.%{busqueda}%,descripcion_corta.ilike.%{busqueda}%")
+        query = await query.or_(f"nombre.ilike.%{busqueda}%,descripcion_corta.ilike.%{busqueda}%")
 
     # Paginación
     offset = (pagina - 1) * por_pagina
-    query = query.range(offset, offset + por_pagina - 1)
+    query = await query.range(offset, offset + por_pagina - 1)
 
     # Ordenar: destacados primero, luego por nombre
-    query = query.order("destacado", desc=True).order("nombre")
+    query = await query.order("destacado", desc=True).order("nombre")
 
-    response = query.execute()
+    response = await query.execute()
 
     return ListaProductos(
         items=response.data,
@@ -103,7 +103,7 @@ async def listar_categorias():
         .select("*")
         .eq("activo", True)
         .order("orden")
-        .execute()
+        await .execute()
     )
 
     return response.data
@@ -120,7 +120,7 @@ async def listar_destacados(limite: int = Query(8, ge=1, le=20)):
         .eq("activo", True)
         .eq("destacado", True)
         .limit(limite)
-        .execute()
+        await .execute()
     )
 
     return response.data
@@ -137,7 +137,7 @@ async def listar_ofertas(limite: int = Query(8, ge=1, le=20)):
         .eq("activo", True)
         .not_.is_("precio_oferta", "null")
         .limit(limite)
-        .execute()
+        await .execute()
     )
 
     return response.data
@@ -153,7 +153,7 @@ async def obtener_producto(producto_id: int):
         .select("*")
         .eq("id", producto_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -174,7 +174,7 @@ async def crear_producto(producto: ProductoCreate):
     response = (
         supabase.table("productos")
         .insert(producto.model_dump())
-        .execute()
+        await .execute()
     )
 
     return response.data[0]
@@ -199,7 +199,7 @@ async def actualizar_producto(producto_id: int, producto: ProductoUpdate):
         supabase.table("productos")
         .update(datos)
         .eq("id", producto_id)
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -222,7 +222,7 @@ async def eliminar_producto(producto_id: int):
         supabase.table("productos")
         .update({"activo": False})
         .eq("id", producto_id)
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -243,7 +243,7 @@ async def listar_por_categoria(categoria: CategoriaProducto):
         .eq("activo", True)
         .order("destacado", desc=True)
         .order("nombre")
-        .execute()
+        await .execute()
     )
 
     return response.data
@@ -264,7 +264,7 @@ async def actualizar_stock(producto_id: int, cantidad: int):
         .select("stock")
         .eq("id", producto_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not producto_resp.data:
@@ -276,7 +276,7 @@ async def actualizar_stock(producto_id: int, cantidad: int):
         supabase.table("productos")
         .update({"stock": nuevo_stock})
         .eq("id", producto_id)
-        .execute()
+        await .execute()
     )
 
     return response.data[0]

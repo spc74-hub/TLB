@@ -49,16 +49,16 @@ async def listar_cuentas(
     """Lista todas las cuentas de caja."""
     supabase = init_supabase()
 
-    query = supabase.table("cash_accounts").select("*")
+    query = await supabase.table("cash_accounts").select("*")
 
     if activo is not None:
-        query = query.eq("activo", activo)
+        query = await query.eq("activo", activo)
 
     if tipo:
-        query = query.eq("tipo", tipo.value)
+        query = await query.eq("tipo", tipo.value)
 
-    query = query.order("es_principal", desc=True).order("nombre")
-    response = query.execute()
+    query = await query.order("es_principal", desc=True).order("nombre")
+    response = await query.execute()
 
     return response.data
 
@@ -73,7 +73,7 @@ async def obtener_cuenta(cuenta_id: int):
         .select("*")
         .eq("id", cuenta_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -95,9 +95,9 @@ async def crear_cuenta(cuenta: CashAccountCreate):
     if datos.get("es_principal"):
         supabase.table("cash_accounts").update({"es_principal": False}).eq(
             "es_principal", True
-        ).execute()
+        await ).execute()
 
-    response = supabase.table("cash_accounts").insert(datos).execute()
+    response = await supabase.table("cash_accounts").insert(datos).execute()
 
     return response.data[0]
 
@@ -119,13 +119,13 @@ async def actualizar_cuenta(cuenta_id: int, cuenta: CashAccountUpdate):
     if datos.get("es_principal"):
         supabase.table("cash_accounts").update({"es_principal": False}).neq(
             "id", cuenta_id
-        ).execute()
+        await ).execute()
 
     response = (
         supabase.table("cash_accounts")
         .update(datos)
         .eq("id", cuenta_id)
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -145,17 +145,17 @@ async def eliminar_cuenta(cuenta_id: int):
         .select("id")
         .eq("cuenta_id", cuenta_id)
         .limit(1)
-        .execute()
+        await .execute()
     )
 
     if movimientos.data:
         supabase.table("cash_accounts").update({"activo": False}).eq(
             "id", cuenta_id
-        ).execute()
+        await ).execute()
         return MensajeRespuesta(mensaje="Cuenta desactivada (tiene movimientos asociados)")
 
     response = (
-        supabase.table("cash_accounts").delete().eq("id", cuenta_id).execute()
+        await supabase.table("cash_accounts").delete().eq("id", cuenta_id).execute()
     )
 
     if not response.data:
@@ -179,32 +179,32 @@ async def listar_movimientos(
     """Lista movimientos de caja con filtros y paginación."""
     supabase = init_supabase()
 
-    query = supabase.table("cash_movements").select(
+    query = await supabase.table("cash_movements").select(
         "*, cash_accounts!cuenta_id(nombre, tipo), cuenta_destino:cash_accounts!cuenta_destino_id(nombre)",
         count="exact"
     )
 
     if cuenta_id:
-        query = query.eq("cuenta_id", cuenta_id)
+        query = await query.eq("cuenta_id", cuenta_id)
 
     if tipo:
-        query = query.eq("tipo", tipo.value)
+        query = await query.eq("tipo", tipo.value)
 
     if referencia_tipo:
-        query = query.eq("referencia_tipo", referencia_tipo.value)
+        query = await query.eq("referencia_tipo", referencia_tipo.value)
 
     if fecha_desde:
-        query = query.gte("fecha", fecha_desde.isoformat())
+        query = await query.gte("fecha", fecha_desde.isoformat())
 
     if fecha_hasta:
         fecha_hasta_fin = datetime.combine(fecha_hasta, datetime.max.time())
-        query = query.lte("fecha", fecha_hasta_fin.isoformat())
+        query = await query.lte("fecha", fecha_hasta_fin.isoformat())
 
     # Ordenar y paginar
     offset = (pagina - 1) * por_pagina
-    query = query.order("fecha", desc=True).range(offset, offset + por_pagina - 1)
+    query = await query.order("fecha", desc=True).range(offset, offset + por_pagina - 1)
 
-    response = query.execute()
+    response = await query.execute()
 
     # Transformar respuesta
     items = []
@@ -244,7 +244,7 @@ async def crear_movimiento(movimiento: CashMovementCreate):
     if datos["referencia_tipo"] != "transferencia":
         datos.pop("cuenta_destino_id", None)
 
-    response = supabase.table("cash_movements").insert(datos).execute()
+    response = await supabase.table("cash_movements").insert(datos).execute()
 
     return response.data[0]
 
@@ -263,7 +263,7 @@ async def eliminar_movimiento(movimiento_id: int):
         .select("referencia_tipo")
         .eq("id", movimiento_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not movimiento.data:
@@ -275,7 +275,7 @@ async def eliminar_movimiento(movimiento_id: int):
             detail="No se puede eliminar un movimiento de cierre"
         )
 
-    supabase.table("cash_movements").delete().eq("id", movimiento_id).execute()
+    await supabase.table("cash_movements").delete().eq("id", movimiento_id).execute()
 
     return MensajeRespuesta(mensaje="Movimiento eliminado correctamente")
 
@@ -299,7 +299,7 @@ async def crear_transferencia(transferencia: TransferenciaCreate):
         supabase.table("cash_accounts")
         .select("id, nombre")
         .in_("id", [transferencia.cuenta_origen_id, transferencia.cuenta_destino_id])
-        .execute()
+        await .execute()
     )
 
     if len(cuentas.data) != 2:
@@ -309,7 +309,7 @@ async def crear_transferencia(transferencia: TransferenciaCreate):
     cuenta_destino = next(c for c in cuentas.data if c["id"] == transferencia.cuenta_destino_id)
 
     # Crear movimiento de salida (gasto en origen)
-    mov_salida = supabase.table("cash_movements").insert({
+    mov_salida = await supabase.table("cash_movements").insert({
         "cuenta_id": transferencia.cuenta_origen_id,
         "tipo": "gasto",
         "importe": transferencia.importe,
@@ -318,10 +318,10 @@ async def crear_transferencia(transferencia: TransferenciaCreate):
         "referencia_tipo": "transferencia",
         "cuenta_destino_id": transferencia.cuenta_destino_id,
         "notas": transferencia.notas,
-    }).execute()
+    await }).execute()
 
     # Crear movimiento de entrada (ingreso en destino)
-    mov_entrada = supabase.table("cash_movements").insert({
+    mov_entrada = await supabase.table("cash_movements").insert({
         "cuenta_id": transferencia.cuenta_destino_id,
         "tipo": "ingreso",
         "importe": transferencia.importe,
@@ -330,12 +330,12 @@ async def crear_transferencia(transferencia: TransferenciaCreate):
         "referencia_tipo": "transferencia",
         "movimiento_relacionado_id": mov_salida.data[0]["id"],
         "notas": transferencia.notas,
-    }).execute()
+    await }).execute()
 
     # Actualizar movimiento de salida con referencia al de entrada
     supabase.table("cash_movements").update({
         "movimiento_relacionado_id": mov_entrada.data[0]["id"]
-    }).eq("id", mov_salida.data[0]["id"]).execute()
+    await }).eq("id", mov_salida.data[0]["id"]).execute()
 
     return MensajeRespuesta(
         mensaje=f"Transferencia de {transferencia.importe}€ realizada correctamente"
@@ -355,24 +355,24 @@ async def listar_cierres(
     """Lista cierres de caja con filtros y paginación."""
     supabase = init_supabase()
 
-    query = supabase.table("cash_closings").select(
+    query = await supabase.table("cash_closings").select(
         "*, cash_accounts(nombre, tipo)",
         count="exact"
     )
 
     if cuenta_id:
-        query = query.eq("cuenta_id", cuenta_id)
+        query = await query.eq("cuenta_id", cuenta_id)
 
     if fecha_desde:
-        query = query.gte("fecha", fecha_desde.isoformat())
+        query = await query.gte("fecha", fecha_desde.isoformat())
 
     if fecha_hasta:
-        query = query.lte("fecha", fecha_hasta.isoformat())
+        query = await query.lte("fecha", fecha_hasta.isoformat())
 
     offset = (pagina - 1) * por_pagina
-    query = query.order("fecha", desc=True).range(offset, offset + por_pagina - 1)
+    query = await query.order("fecha", desc=True).range(offset, offset + por_pagina - 1)
 
-    response = query.execute()
+    response = await query.execute()
 
     items = []
     for item in response.data:
@@ -406,7 +406,7 @@ async def crear_cierre(cierre: CashClosingCreate):
         .select("id")
         .eq("cuenta_id", cierre.cuenta_id)
         .eq("fecha", cierre.fecha.isoformat())
-        .execute()
+        await .execute()
     )
 
     if existente.data:
@@ -421,7 +421,7 @@ async def crear_cierre(cierre: CashClosingCreate):
         .select("balance_actual")
         .eq("id", cierre.cuenta_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not cuenta.data:
@@ -435,7 +435,7 @@ async def crear_cierre(cierre: CashClosingCreate):
         .lt("fecha", cierre.fecha.isoformat())
         .order("fecha", desc=True)
         .limit(1)
-        .execute()
+        await .execute()
     )
 
     if cierre_anterior.data:
@@ -447,7 +447,7 @@ async def crear_cierre(cierre: CashClosingCreate):
             .select("balance_inicial")
             .eq("id", cierre.cuenta_id)
             .single()
-            .execute()
+            await .execute()
         )
         balance_apertura = cuenta_info.data["balance_inicial"]
 
@@ -461,7 +461,7 @@ async def crear_cierre(cierre: CashClosingCreate):
         .eq("cuenta_id", cierre.cuenta_id)
         .gte("fecha", fecha_inicio.isoformat())
         .lte("fecha", fecha_fin.isoformat())
-        .execute()
+        await .execute()
     )
 
     total_ingresos = sum(
@@ -500,7 +500,7 @@ async def crear_cierre(cierre: CashClosingCreate):
         "notas": cierre.notas,
     }
 
-    response = supabase.table("cash_closings").insert(datos_cierre).execute()
+    response = await supabase.table("cash_closings").insert(datos_cierre).execute()
 
     return response.data[0]
 
@@ -517,7 +517,7 @@ async def obtener_estadisticas():
         supabase.table("cash_accounts")
         .select("tipo, balance_actual")
         .eq("activo", True)
-        .execute()
+        await .execute()
     )
 
     balance_total = sum(float(c["balance_actual"]) for c in cuentas.data)
@@ -537,7 +537,7 @@ async def obtener_estadisticas():
         .select("tipo, importe")
         .gte("fecha", hoy_inicio.isoformat())
         .lte("fecha", hoy_fin.isoformat())
-        .execute()
+        await .execute()
     )
 
     ingresos_hoy = sum(
@@ -557,7 +557,7 @@ async def obtener_estadisticas():
         .select("tipo, importe")
         .gte("fecha", mes_inicio.isoformat())
         .lte("fecha", hoy_fin.isoformat())
-        .execute()
+        await .execute()
     )
 
     ingresos_mes = sum(
@@ -573,7 +573,7 @@ async def obtener_estadisticas():
         .select("fecha")
         .order("fecha", desc=True)
         .limit(1)
-        .execute()
+        await .execute()
     )
 
     return CashStats(
@@ -603,7 +603,7 @@ async def obtener_prevision_liquidez(dias: int = Query(30, ge=7, le=90)):
         supabase.table("cash_accounts")
         .select("balance_actual")
         .eq("activo", True)
-        .execute()
+        await .execute()
     )
     balance_actual = sum(float(c["balance_actual"]) for c in cuentas.data)
 
@@ -614,7 +614,7 @@ async def obtener_prevision_liquidez(dias: int = Query(30, ge=7, le=90)):
         .eq("pagado", False)
         .not_.is_("fecha_vencimiento", "null")
         .lte("fecha_vencimiento", (date.today() + timedelta(days=dias)).isoformat())
-        .execute()
+        await .execute()
     )
 
     # Gastos recurrentes activos
@@ -624,7 +624,7 @@ async def obtener_prevision_liquidez(dias: int = Query(30, ge=7, le=90)):
         .eq("es_recurrente", True)
         .is_("gasto_padre_id", "null")
         .or_(f"fecha_fin_recurrencia.is.null,fecha_fin_recurrencia.gte.{date.today().isoformat()}")
-        .execute()
+        await .execute()
     )
 
     # Calcular gasto recurrente mensual aproximado
@@ -730,7 +730,7 @@ async def obtener_pl_dashboard(
         .eq("estado", "pagado")
         .gte("created_at", fecha_desde.isoformat())
         .lte("created_at", fecha_hasta.isoformat() + "T23:59:59")
-        .execute()
+        await .execute()
     )
     ingresos_pedidos = sum(float(p["total"]) for p in pedidos.data) if pedidos.data else 0
     num_pedidos = len(pedidos.data) if pedidos.data else 0
@@ -742,7 +742,7 @@ async def obtener_pl_dashboard(
         .eq("estado", "completada")
         .gte("fecha", fecha_desde.isoformat())
         .lte("fecha", fecha_hasta.isoformat())
-        .execute()
+        await .execute()
     )
     ingresos_reservas = sum(float(r.get("precio_total", 0) or 0) for r in reservas.data) if reservas.data else 0
     num_reservas = len(reservas.data) if reservas.data else 0
@@ -755,7 +755,7 @@ async def obtener_pl_dashboard(
         .eq("referencia_tipo", "ajuste")
         .gte("fecha", fecha_desde.isoformat())
         .lte("fecha", fecha_hasta.isoformat() + "T23:59:59")
-        .execute()
+        await .execute()
     )
     ingresos_otros = sum(float(o["importe"]) for o in otros_ingresos.data) if otros_ingresos.data else 0
 
@@ -767,7 +767,7 @@ async def obtener_pl_dashboard(
         .select("importe, expense_categories(nombre, categoria_base)")
         .gte("fecha", fecha_desde.isoformat())
         .lte("fecha", fecha_hasta.isoformat())
-        .execute()
+        await .execute()
     )
 
     total_gastos = sum(float(g["importe"]) for g in gastos.data) if gastos.data else 0

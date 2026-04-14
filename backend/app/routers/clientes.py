@@ -50,34 +50,34 @@ async def listar_clientes(
     supabase = init_supabase()
 
     # Construir query base
-    query = supabase.table("clientes").select("*", count="exact")
+    query = await supabase.table("clientes").select("*", count="exact")
 
     # Aplicar filtros
     if busqueda:
         # Búsqueda en nombre, email o teléfono
-        query = query.or_(
+        query = await query.or_(
             f"nombre.ilike.%{busqueda}%,"
             f"email.ilike.%{busqueda}%,"
             f"telefono.ilike.%{busqueda}%"
         )
 
     if acepta_marketing is not None:
-        query = query.eq("acepta_marketing", acepta_marketing)
+        query = await query.eq("acepta_marketing", acepta_marketing)
 
     if etiqueta:
-        query = query.contains("etiquetas", [etiqueta])
+        query = await query.contains("etiquetas", [etiqueta])
 
     if origen:
-        query = query.eq("origen", origen.value)
+        query = await query.eq("origen", origen.value)
 
     # Ordenación
-    query = query.order(orden, desc=desc)
+    query = await query.order(orden, desc=desc)
 
     # Paginación
     offset = (pagina - 1) * por_pagina
-    query = query.range(offset, offset + por_pagina - 1)
+    query = await query.range(offset, offset + por_pagina - 1)
 
-    response = query.execute()
+    response = await query.execute()
 
     return ListaClientes(
         items=response.data,
@@ -93,14 +93,14 @@ async def obtener_estadisticas():
     supabase = init_supabase()
 
     # Total de clientes
-    total = supabase.table("clientes").select("id", count="exact").execute()
+    total = await supabase.table("clientes").select("id", count="exact").execute()
 
     # Con opt-in de marketing
     marketing = (
         supabase.table("clientes")
         .select("id", count="exact")
         .eq("acepta_marketing", True)
-        .execute()
+        await .execute()
     )
 
     # Por origen
@@ -110,7 +110,7 @@ async def obtener_estadisticas():
             supabase.table("clientes")
             .select("id", count="exact")
             .eq("origen", origen)
-            .execute()
+            await .execute()
         )
         origenes[origen] = count.count or 0
 
@@ -134,7 +134,7 @@ async def listar_etiquetas():
         supabase.table("clientes")
         .select("etiquetas")
         .not_.is_("etiquetas", "null")
-        .execute()
+        await .execute()
     )
 
     # Extraer etiquetas únicas
@@ -157,7 +157,7 @@ async def obtener_cliente(cliente_id: str):
         .select("*")
         .eq("id", cliente_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -170,7 +170,7 @@ async def obtener_cliente(cliente_id: str):
         supabase.table("cliente_reservas_link")
         .select("reserva_id, reservas(*)")
         .eq("cliente_id", cliente_id)
-        .execute()
+        await .execute()
     )
 
     reservas = [r["reservas"] for r in reservas_response.data if r.get("reservas")]
@@ -180,7 +180,7 @@ async def obtener_cliente(cliente_id: str):
         supabase.table("cliente_pedidos_link")
         .select("pedido_id, pedidos(*)")
         .eq("cliente_id", cliente_id)
-        .execute()
+        await .execute()
     )
 
     pedidos = [p["pedidos"] for p in pedidos_response.data if p.get("pedidos")]
@@ -203,7 +203,7 @@ async def crear_cliente(cliente: ClienteCreate):
             supabase.table("clientes")
             .select("id")
             .ilike("email", cliente.email)
-            .execute()
+            await .execute()
         )
         if existente.data:
             raise HTTPException(
@@ -218,7 +218,7 @@ async def crear_cliente(cliente: ClienteCreate):
     if cliente.acepta_marketing:
         datos["fecha_opt_in"] = datetime.now().isoformat()
 
-    response = supabase.table("clientes").insert(datos).execute()
+    response = await supabase.table("clientes").insert(datos).execute()
 
     return response.data[0]
 
@@ -234,7 +234,7 @@ async def actualizar_cliente(cliente_id: str, cliente: ClienteUpdate):
         .select("id, acepta_marketing")
         .eq("id", cliente_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not existente.data:
@@ -260,7 +260,7 @@ async def actualizar_cliente(cliente_id: str, cliente: ClienteUpdate):
         supabase.table("clientes")
         .update(datos)
         .eq("id", cliente_id)
-        .execute()
+        await .execute()
     )
 
     return response.data[0]
@@ -277,14 +277,14 @@ async def eliminar_cliente(cliente_id: str):
         .select("id")
         .eq("id", cliente_id)
         .single()
-        .execute()
+        await .execute()
     )
 
     if not existente.data:
         raise HTTPException(status_code=404, detail="Cliente no encontrado")
 
     # Eliminar (las relaciones se eliminan en cascada)
-    supabase.table("clientes").delete().eq("id", cliente_id).execute()
+    await supabase.table("clientes").delete().eq("id", cliente_id).execute()
 
     return MensajeRespuesta(mensaje="Cliente eliminado correctamente")
 
@@ -303,7 +303,7 @@ async def activar_marketing(cliente_id: str):
             "updated_at": datetime.now().isoformat(),
         })
         .eq("id", cliente_id)
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -325,7 +325,7 @@ async def desactivar_marketing(cliente_id: str):
             "updated_at": datetime.now().isoformat(),
         })
         .eq("id", cliente_id)
-        .execute()
+        await .execute()
     )
 
     if not response.data:
@@ -418,7 +418,7 @@ async def importar_clientes(archivo: UploadFile = File(...)):
                     supabase.table("clientes")
                     .select("id")
                     .ilike("email", email)
-                    .execute()
+                    await .execute()
                 )
                 if result.data:
                     existente = result.data[0]["id"]
@@ -439,11 +439,11 @@ async def importar_clientes(archivo: UploadFile = File(...)):
             if existente:
                 # Actualizar
                 datos["updated_at"] = datetime.now().isoformat()
-                supabase.table("clientes").update(datos).eq("id", existente).execute()
+                await supabase.table("clientes").update(datos).eq("id", existente).execute()
                 actualizados += 1
             else:
                 # Crear
-                supabase.table("clientes").insert(datos).execute()
+                await supabase.table("clientes").insert(datos).execute()
                 creados += 1
 
         except Exception as e:
@@ -485,15 +485,15 @@ async def exportar_clientes_csv(
 
     supabase = init_supabase()
 
-    query = supabase.table("clientes").select("*")
+    query = await supabase.table("clientes").select("*")
 
     if acepta_marketing is not None:
-        query = query.eq("acepta_marketing", acepta_marketing)
+        query = await query.eq("acepta_marketing", acepta_marketing)
 
     if etiqueta:
-        query = query.contains("etiquetas", [etiqueta])
+        query = await query.contains("etiquetas", [etiqueta])
 
-    response = query.order("nombre").execute()
+    response = await query.order("nombre").execute()
 
     # Generar CSV
     output = io.StringIO()
