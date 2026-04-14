@@ -42,8 +42,7 @@ def crear_o_actualizar_cliente_crm_pedido(
         existente = (
             supabase.table("clientes")
             .select("id, acepta_marketing, total_pedidos, total_gastado")
-            .ilike("email", email)
-            await .execute()
+            await .ilike("email", email).execute()
         )
 
         if existente.data:

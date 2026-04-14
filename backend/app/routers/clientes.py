@@ -99,8 +99,7 @@ async def obtener_estadisticas():
     marketing = (
         supabase.table("clientes")
         .select("id", count="exact")
-        .eq("acepta_marketing", True)
-        await .execute()
+        await .eq("acepta_marketing", True).execute()
     )
 
     # Por origen
@@ -109,8 +108,7 @@ async def obtener_estadisticas():
         count = (
             supabase.table("clientes")
             .select("id", count="exact")
-            .eq("origen", origen)
-            await .execute()
+            await .eq("origen", origen).execute()
         )
         origenes[origen] = count.count or 0
 
@@ -133,8 +131,7 @@ async def listar_etiquetas():
     response = (
         supabase.table("clientes")
         .select("etiquetas")
-        .not_.is_("etiquetas", "null")
-        await .execute()
+        await .not_.is_("etiquetas", "null").execute()
     )
 
     # Extraer etiquetas únicas
@@ -156,8 +153,7 @@ async def obtener_cliente(cliente_id: str):
         supabase.table("clientes")
         .select("*")
         .eq("id", cliente_id)
-        .single()
-        await .execute()
+        await .single().execute()
     )
 
     if not response.data:
@@ -169,8 +165,7 @@ async def obtener_cliente(cliente_id: str):
     reservas_response = (
         supabase.table("cliente_reservas_link")
         .select("reserva_id, reservas(*)")
-        .eq("cliente_id", cliente_id)
-        await .execute()
+        await .eq("cliente_id", cliente_id).execute()
     )
 
     reservas = [r["reservas"] for r in reservas_response.data if r.get("reservas")]
@@ -179,8 +174,7 @@ async def obtener_cliente(cliente_id: str):
     pedidos_response = (
         supabase.table("cliente_pedidos_link")
         .select("pedido_id, pedidos(*)")
-        .eq("cliente_id", cliente_id)
-        await .execute()
+        await .eq("cliente_id", cliente_id).execute()
     )
 
     pedidos = [p["pedidos"] for p in pedidos_response.data if p.get("pedidos")]
@@ -202,8 +196,7 @@ async def crear_cliente(cliente: ClienteCreate):
         existente = (
             supabase.table("clientes")
             .select("id")
-            .ilike("email", cliente.email)
-            await .execute()
+            await .ilike("email", cliente.email).execute()
         )
         if existente.data:
             raise HTTPException(
@@ -233,8 +226,7 @@ async def actualizar_cliente(cliente_id: str, cliente: ClienteUpdate):
         supabase.table("clientes")
         .select("id, acepta_marketing")
         .eq("id", cliente_id)
-        .single()
-        await .execute()
+        await .single().execute()
     )
 
     if not existente.data:
@@ -259,8 +251,7 @@ async def actualizar_cliente(cliente_id: str, cliente: ClienteUpdate):
     response = (
         supabase.table("clientes")
         .update(datos)
-        .eq("id", cliente_id)
-        await .execute()
+        await .eq("id", cliente_id).execute()
     )
 
     return response.data[0]
@@ -276,8 +267,7 @@ async def eliminar_cliente(cliente_id: str):
         supabase.table("clientes")
         .select("id")
         .eq("id", cliente_id)
-        .single()
-        await .execute()
+        await .single().execute()
     )
 
     if not existente.data:
@@ -302,8 +292,7 @@ async def activar_marketing(cliente_id: str):
             "fecha_opt_out": None,
             "updated_at": datetime.now().isoformat(),
         })
-        .eq("id", cliente_id)
-        await .execute()
+        await .eq("id", cliente_id).execute()
     )
 
     if not response.data:
@@ -324,8 +313,7 @@ async def desactivar_marketing(cliente_id: str):
             "fecha_opt_out": datetime.now().isoformat(),
             "updated_at": datetime.now().isoformat(),
         })
-        .eq("id", cliente_id)
-        await .execute()
+        await .eq("id", cliente_id).execute()
     )
 
     if not response.data:
@@ -417,8 +405,7 @@ async def importar_clientes(archivo: UploadFile = File(...)):
                 result = (
                     supabase.table("clientes")
                     .select("id")
-                    .ilike("email", email)
-                    await .execute()
+                    await .ilike("email", email).execute()
                 )
                 if result.data:
                     existente = result.data[0]["id"]

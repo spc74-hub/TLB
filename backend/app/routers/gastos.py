@@ -87,8 +87,7 @@ async def actualizar_categoria(categoria_id: int, categoria: ExpenseCategoryUpda
     response = (
         supabase.table("expense_categories")
         .update(datos)
-        .eq("id", categoria_id)
-        await .execute()
+        await .eq("id", categoria_id).execute()
     )
 
     if not response.data:
@@ -107,8 +106,7 @@ async def eliminar_categoria(categoria_id: int):
         supabase.table("expenses")
         .select("id")
         .eq("categoria_id", categoria_id)
-        .limit(1)
-        await .execute()
+        await .limit(1).execute()
     )
 
     if gastos.data:
@@ -211,8 +209,7 @@ async def eliminar_proveedor(proveedor_id: int):
         supabase.table("expenses")
         .select("id")
         .eq("vendor_id", proveedor_id)
-        .limit(1)
-        await .execute()
+        await .limit(1).execute()
     )
 
     if gastos.data:
@@ -365,8 +362,7 @@ async def obtener_estadisticas(
         supabase.table("expenses")
         .select("id")
         .eq("es_recurrente", True)
-        .or_("fecha_fin_recurrencia.is.null,fecha_fin_recurrencia.gte." + date.today().isoformat())
-        await .execute()
+        await .or_("fecha_fin_recurrencia.is.null,fecha_fin_recurrencia.gte." + date.today().isoformat()).execute()
     )
 
     # Próximos vencimientos (próximos 7 días)
@@ -380,8 +376,7 @@ async def obtener_estadisticas(
         .eq("pagado", False)
         .gte("fecha_vencimiento", proxima_semana.isoformat())
         .lte("fecha_vencimiento", proxima_semana_fin.isoformat())
-        .order("fecha_vencimiento")
-        await .execute()
+        await .order("fecha_vencimiento").execute()
     )
 
     return ExpenseStats(
@@ -404,8 +399,7 @@ async def obtener_gasto(gasto_id: int):
         supabase.table("expenses")
         .select("*, expense_categories(nombre, color, icono), vendors(nombre), cash_accounts(nombre)")
         .eq("id", gasto_id)
-        .single()
-        await .execute()
+        await .single().execute()
     )
 
     if not response.data:
@@ -487,8 +481,7 @@ async def eliminar_gasto(gasto_id: int):
         supabase.table("expenses")
         .select("movimiento_id")
         .eq("id", gasto_id)
-        .single()
-        await .execute()
+        await .single().execute()
     )
 
     if gasto.data and gasto.data.get("movimiento_id"):
@@ -522,8 +515,7 @@ async def marcar_gasto_pagado(
         supabase.table("expenses")
         .select("*")
         .eq("id", gasto_id)
-        .single()
-        await .execute()
+        await .single().execute()
     )
 
     if not gasto.data:
@@ -558,8 +550,7 @@ async def marcar_gasto_pagado(
     response = (
         supabase.table("expenses")
         .update(update_data)
-        .eq("id", gasto_id)
-        await .execute()
+        await .eq("id", gasto_id).execute()
     )
 
     return response.data[0]
@@ -580,8 +571,7 @@ async def obtener_gastos_recurrentes_pendientes():
         .select("*")
         .eq("es_recurrente", True)
         .is_("gasto_padre_id", "null")  # Solo gastos padre
-        .or_(f"fecha_fin_recurrencia.is.null,fecha_fin_recurrencia.gte.{hoy.isoformat()}")
-        await .execute()
+        await .or_(f"fecha_fin_recurrencia.is.null,fecha_fin_recurrencia.gte.{hoy.isoformat()}").execute()
     )
 
     return response.data

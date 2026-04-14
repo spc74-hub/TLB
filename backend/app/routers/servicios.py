@@ -80,8 +80,7 @@ async def obtener_servicio(servicio_id: int):
         supabase.table("servicios")
         .select("*")
         .eq("id", servicio_id)
-        .single()
-        await .execute()
+        await .single().execute()
     )
 
     if not response.data:
@@ -101,8 +100,7 @@ async def crear_servicio(servicio: ServicioCreate):
 
     response = (
         supabase.table("servicios")
-        .insert(servicio.model_dump())
-        await .execute()
+        await .insert(servicio.model_dump()).execute()
     )
 
     return response.data[0]
@@ -126,8 +124,7 @@ async def actualizar_servicio(servicio_id: int, servicio: ServicioUpdate):
     response = (
         supabase.table("servicios")
         .update(datos)
-        .eq("id", servicio_id)
-        await .execute()
+        await .eq("id", servicio_id).execute()
     )
 
     if not response.data:
@@ -149,8 +146,7 @@ async def eliminar_servicio(servicio_id: int):
     response = (
         supabase.table("servicios")
         .update({"activo": False})
-        .eq("id", servicio_id)
-        await .execute()
+        await .eq("id", servicio_id).execute()
     )
 
     if not response.data:
@@ -169,8 +165,7 @@ async def listar_por_categoria(categoria: CategoriaServicio):
         .select("*")
         .eq("categoria", categoria.value)
         .eq("activo", True)
-        .order("nombre")
-        await .execute()
+        await .order("nombre").execute()
     )
 
     return response.data
