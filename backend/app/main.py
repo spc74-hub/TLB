@@ -19,9 +19,15 @@ async def lifespan(app: FastAPI):
     """Ciclo de vida de la aplicación."""
     # Startup: inicializar conexiones
     init_supabase()
-    print("🌿 The Lobby Beauty API iniciada")
+    # Initialize asyncpg pool
+    from app.db.compat import get_pool
+    await get_pool()
+    print("🌿 The Lobby Beauty API iniciada (PostgreSQL directo)")
     yield
-    # Shutdown: cerrar conexiones
+    # Shutdown: cerrar pool
+    from app.db.compat import _pool
+    if _pool:
+        await _pool.close()
     print("🌿 The Lobby Beauty API detenida")
 
 
