@@ -23,7 +23,7 @@ import {
   getProductosPorCategoria,
   type Producto,
   type CategoriaProductoInfo,
-} from "@/lib/supabase";
+} from '@/lib/api';
 import { useCart } from "@/context/CartContext";
 import { ProductReviews } from "@/components/ProductReviews";
 import { SEO } from "@/components/SEO";

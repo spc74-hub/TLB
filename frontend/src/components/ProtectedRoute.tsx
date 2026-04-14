@@ -1,7 +1,7 @@
 import { Navigate, useLocation } from "react-router-dom";
 import { Loader2 } from "lucide-react";
 import { useAuth } from "@/context/AuthContext";
-import type { RolUsuario } from "@/lib/supabase";
+import type { RolUsuario } from '@/lib/api';
 
 interface ProtectedRouteProps {
   children: React.ReactNode;

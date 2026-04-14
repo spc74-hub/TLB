@@ -4,7 +4,7 @@ import { Loader2, Leaf, Mail, ArrowLeft, CheckCircle2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader } from "@/components/ui/card";
-import { recuperarPassword } from "@/lib/supabase";
+import { recuperarPassword } from '@/lib/api';
 
 export function RecuperarPassword() {
   const [email, setEmail] = useState("");

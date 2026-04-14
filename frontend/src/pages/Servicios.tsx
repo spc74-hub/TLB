@@ -8,7 +8,7 @@ import {
   getServicios,
   type Servicio,
   type CategoriaServicio,
-} from "@/lib/supabase";
+} from '@/lib/api';
 import { SEO } from "@/components/SEO";
 
 const categoriaLabels: Record<CategoriaServicio, string> = {

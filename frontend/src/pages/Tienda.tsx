@@ -24,7 +24,7 @@ import {
   type Producto,
   type CategoriaProductoInfo,
   type CategoriaProducto,
-} from "@/lib/supabase";
+} from '@/lib/api';
 import { useCart } from "@/context/CartContext";
 import { useWishlist } from "@/context/WishlistContext";
 import { SEO } from "@/components/SEO";

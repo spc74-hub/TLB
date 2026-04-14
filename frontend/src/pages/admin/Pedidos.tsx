@@ -45,7 +45,7 @@ import {
   actualizarEstadoPedido,
   type Pedido,
   type EstadoPedido,
-} from "@/lib/supabase";
+} from '@/lib/api';
 
 const API_URL = import.meta.env.VITE_API_URL || "http://localhost:8001/api/v1";
 

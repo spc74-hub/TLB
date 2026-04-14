@@ -46,7 +46,7 @@ import {
   subirImagenServicio,
   type Servicio,
   type CategoriaServicio,
-} from "@/lib/supabase";
+} from '@/lib/api';
 
 const CATEGORIAS: { valor: CategoriaServicio; nombre: string }[] = [
   { valor: "manicura", nombre: "Manicura" },

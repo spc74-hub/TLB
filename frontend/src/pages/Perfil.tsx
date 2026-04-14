@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { useAuth } from "@/context/AuthContext";
-import { actualizarPerfil, getMisPedidos, getMisReservas, cancelarReserva, type Pedido, type EstadoPedido, type Reserva, type EstadoReserva } from "@/lib/supabase";
+import { actualizarPerfil, getMisPedidos, getMisReservas, cancelarReserva, type Pedido, type EstadoPedido, type Reserva, type EstadoReserva } from '@/lib/api';
 
 // Helper para mostrar estado de pedido
 const estadoConfig: Record<EstadoPedido, { label: string; color: string; icon: React.ReactNode }> = {

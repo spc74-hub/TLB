@@ -41,7 +41,7 @@ import {
   type DiaBloqueado,
   type Reserva,
   type SlotHorario,
-} from "@/lib/supabase";
+} from '@/lib/api';
 import { useAuth } from "@/context/AuthContext";
 
 type PasoReserva = "servicio" | "fecha" | "datos" | "confirmacion";

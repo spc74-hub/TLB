@@ -19,7 +19,7 @@ import {
   getServicios,
   type Servicio,
   type CategoriaServicio,
-} from "@/lib/supabase";
+} from '@/lib/api';
 
 const categoriaLabels: Record<CategoriaServicio, string> = {
   manicura: "Manicura",

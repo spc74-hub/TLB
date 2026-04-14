@@ -29,7 +29,7 @@ import {
   crearEmpleado,
   actualizarEmpleado,
   type Empleado,
-} from "@/lib/supabase";
+} from '@/lib/api';
 
 const COLORES_DISPONIBLES = [
   { nombre: "Salvia", valor: "#8B9D83" },

@@ -77,7 +77,7 @@ class ServicioBase(BaseModel):
     nombre: str = Field(..., min_length=2, max_length=200)
     descripcion: Optional[str] = None
     categoria: CategoriaServicio
-    duracion_minutos: int = Field(..., ge=15, le=240)
+    duracion_minutos: int = Field(..., ge=5, le=240)
     precio: float = Field(..., ge=0)
     precio_oferta: Optional[float] = Field(None, ge=0)
     es_libre_toxicos: bool = Field(default=True, description="Libre de TPO/DMPT")
@@ -96,7 +96,7 @@ class ServicioUpdate(BaseModel):
     nombre: Optional[str] = Field(None, min_length=2, max_length=200)
     descripcion: Optional[str] = None
     categoria: Optional[CategoriaServicio] = None
-    duracion_minutos: Optional[int] = Field(None, ge=15, le=240)
+    duracion_minutos: Optional[int] = Field(None, ge=5, le=240)
     precio: Optional[float] = Field(None, ge=0)
     precio_oferta: Optional[float] = Field(None, ge=0)
     es_libre_toxicos: Optional[bool] = None

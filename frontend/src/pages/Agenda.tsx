@@ -54,7 +54,7 @@ import {
   type Reserva,
   type Horario,
   type EstadoReserva,
-} from "@/lib/supabase";
+} from '@/lib/api';
 
 export function Agenda() {
   const { perfil } = useAuth();
