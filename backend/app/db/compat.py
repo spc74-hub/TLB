@@ -30,6 +30,21 @@ class QueryResult:
         self.count = count
 
 
+class _NotFilter:
+    """supabase-py compatibility for negated filters: `query.not_.is_(col, val)`.
+
+    The official client exposes `.not_` as a property that negates the next
+    filter. We mirror just what the codebase uses (`.not_.is_(...)`); it records
+    an `is_not` filter and hands the QueryBuilder back so the chain continues.
+    """
+    def __init__(self, qb: "QueryBuilder"):
+        self._qb = qb
+
+    def is_(self, col, val):
+        self._qb._filters.append(("is_not", col, val))
+        return self._qb
+
+
 class QueryBuilder:
     def __init__(self, table: str):
         self._table = table
@@ -70,6 +85,11 @@ class QueryBuilder:
 
     def or_(self, expr):
         self._or_filters.append(expr); return self
+
+    @property
+    def not_(self):
+        """supabase-py compatibility: `query.not_.is_(col, val)` → negated filter."""
+        return _NotFilter(self)
 
     def order(self, col, desc=False):
         self._orders.append((col, desc)); return self
@@ -130,9 +150,16 @@ class QueryBuilder:
                         params.append(v); phs.append(f"${len(params)}")
                     conditions.append(f'"{col}" IN ({", ".join(phs)})')
             elif op == "is_":
-                if val is None: conditions.append(f'"{col}" IS NULL')
-                elif val is True: conditions.append(f'"{col}" IS TRUE')
-                elif val is False: conditions.append(f'"{col}" IS FALSE')
+                # supabase-py passes the strings "null"/"true"/"false" as well as
+                # Python None/True/False. Handle both (previously the string forms
+                # silently produced NO filter → unfiltered results).
+                if val is None or val == "null": conditions.append(f'"{col}" IS NULL')
+                elif val is True or val == "true": conditions.append(f'"{col}" IS TRUE')
+                elif val is False or val == "false": conditions.append(f'"{col}" IS FALSE')
+            elif op == "is_not":
+                if val is None or val == "null": conditions.append(f'"{col}" IS NOT NULL')
+                elif val is True or val == "true": conditions.append(f'"{col}" IS NOT TRUE')
+                elif val is False or val == "false": conditions.append(f'"{col}" IS NOT FALSE')
             elif op == "ilike":
                 params.append(val); conditions.append(f'"{col}" ILIKE ${len(params)}')
             elif op == "contains":

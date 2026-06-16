@@ -1,5 +1,8 @@
 # Changelog
 
+## 2026-06-16
+- **fix:** `app/db/compat.py` (capa de compatibilidad supabase→asyncpg) no soportaba `.not_` ni la convención de strings de supabase-py. Causaba **HTTP 500** en los endpoints que usan `.not_.is_(col, "null")` (clientes/etiquetas, productos ofertas/destacados, tesorería vencimientos, ingresos por pedido). Añadido `.not_` (`IS NOT NULL`) y soporte de los strings `"null"`/`"true"`/`"false"` en `.is_()`. **Nota:** esto también corrige `.is_(col, "null")`, que antes no filtraba nada → ahora las vistas de gastos/tesorería ("solo gastos padre") y cuenta de resultados (`movimiento_id IS NULL`) filtran correctamente.
+
 ## 2026-04-15
 - **refactor:** migración de almacenamiento — filesystem local reemplaza Supabase Storage
 - **refactor:** todas las llamadas frontend a Supabase reemplazadas por API backend
