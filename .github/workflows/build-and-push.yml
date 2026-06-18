@@ -4,7 +4,7 @@ name: build-and-push
 # despliega por SSH al VPS (pull + up). Sin builds en el VPS.
 on:
   push:
-    branches: [main, ci/github-actions]
+    branches: [main]
     paths-ignore:          # cambios solo de docs/markdown NO disparan build+deploy
       - '**.md'
       - 'docs/**'
@@ -51,10 +51,9 @@ jobs:
     needs: build
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy to VPS (pull + up)
+      - name: Trigger deploy on VPS (webhook → pull + up)
         run: |
-          mkdir -p ~/.ssh
-          printf '%s\n' "${{ secrets.VPS_SSH_KEY }}" > ~/.ssh/id_ed25519
-          chmod 600 ~/.ssh/id_ed25519
-          ssh -o StrictHostKeyChecking=accept-new -i ~/.ssh/id_ed25519 \
-            root@${{ secrets.VPS_HOST }} tlb
+          curl -fsS -X POST https://webhook.spcapps.com/ci-deploy \
+            -H "X-Deploy-Token: ${{ secrets.DEPLOY_WEBHOOK_TOKEN }}" \
+            -H "Content-Type: application/json" \
+            -d '{"app":"tlb"}'
