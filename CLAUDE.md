@@ -148,15 +148,20 @@ Base: `/api/v1`
 - **Rutas protegidas:** `ProtectedRoute` componente que valida auth + rol antes de renderizar.
 - **Backend:** JWT configurado (HS256, 30min) pero sin middleware de validación activo — la auth se delega a Cloudflare Access.
 
-## Deployment
-
-- **Tipo:** Docker en VPS Hostinger (72.62.26.203)
-- **Contenedores:** Frontend (nginx:1.27-alpine, puerto 80), Backend (python:3.11-slim, uvicorn puerto 8000)
-- **Dominio:** tlb.spcapps.com (Cloudflare Tunnel)
-- **Proxy:** Nginx reverse proxy (infraestructura centralizada spcapps-infra)
-- **Base de datos:** PostgreSQL 16 compartido (container spcapps-postgres)
-- **Auto-deploy:** Webhook en GitHub → pull + build + restart
-- **Variables de entorno:** DATABASE_URL, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, CORS_ORIGINS
+## Deployment — modelo CI · ⚠️ NO se construye en el VPS
+La imagen se construye en **GitHub Actions** (`.github/workflows/build-and-push.yml`)
+y se publica en **GHCR**; el VPS solo descarga y arranca. Modelo canónico:
+`spcapps-infra/docs/DEPLOY-MODEL.md`.
+- **Cambio de CÓDIGO:** `git push` a `main` → GitHub construye →
+  `ghcr.io/spc74-hub/tlb-{backend,frontend}` → GitHub dispara un webhook HTTPS y el
+  VPS hace `docker compose pull && up -d`. **Automático. NO hagas build ni `git pull`
+  de código en el VPS** (corre desde la imagen de GHCR). Los `.md`/docs NO disparan el pipeline.
+- **Compose de producción:** `spcapps-infra/projects/tlb/docker-compose.yml` (NO el de
+  este repo, que es solo dev-local). `image:` + topes + red `spcapps-network`.
+- **Contenedores en prod:** `tlb-backend` (python 3.11, uvicorn :8000), `tlb-frontend`
+  (build Vite servido por nginx :80). Postgres compartido `spcapps-postgres`.
+- **Dominio:** tlb.spcapps.com (Cloudflare Tunnel). `/api/` y `/storage/` **mantienen** el prefijo en nginx.
+- **Env** (en `projects/tlb/.env` del VPS): DATABASE_URL, STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET, RESEND_API_KEY, TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN, CORS_ORIGINS.
 
 ## Key files
 
